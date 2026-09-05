@@ -2808,6 +2808,12 @@ bindScrollRegion(messagesEl, scrollDownBtn);
    两个滚动容器需 overflow-anchor:none（CSS 已加），Safari 不支持故脚本判定自给。 */
 window.MONSTERA_CH = window.MONSTERA_CH || {};
 window.MONSTERA_CH.agentScroll = true;
+window.MONSTERA_CH.foldPersist = true;   // 片 2：过程 chip 展开态保活（活过 SSE 帧重建）
+/* 用户手动展开的过程步骤序号集合（P1 dataset 模式：stepNo 为稳定键，帧间不变）。
+   agentViewRender 重建前捕获 .fmsg-chip.open 的 stepNo 写入；重建后 fmsgChipHtml 据此恢复。
+   live 步强制展开，不写入集合；已结束步才参与持久化。 */
+const fmsgOpenSteps = new Set();   // Set<number stepNo>
+let fmsgOpenForTaskId = null;      // 片 2：展开集合归属的任务 id（切换任务即清，防 stepNo 串号）
 /* 片 1 P4：Agent 区回底按钮 + 滚动绑定（渲染后调用，每次 ensure）：
    - #taskView 节点稳定，仅首次绑定；按钮每次渲染后重挂（内容重建会抹掉它）。
    - .agent-pane-stream 由 agentPaneRender 整体重建（新节点）→ 每次 ensure 重新 bind。
@@ -4641,9 +4647,10 @@ function fmsgChipHtml(c, live){
   const ext = detail ? ' data-ext="1"' : '';
   /* 折叠标题硬截断：单行铁律（OpenHands MAX_LINE_LENGTH 语义） */
   const title = String(c.title || '').length > 60 ? String(c.title).slice(0, 60) + '…' : String(c.title || '');
-  /* 执行中步骤（live）强制展开（带 open 显示详情）；已结束步骤默认折叠 */
-  const cls = `${c.state || ''}${live ? ' live open' : ''}`.trim();
-  return `<div class="fmsg-chip ${cls}"${ext}>
+  /* 展开决定：执行中(live)强制展开；否则看「用户手动展开集合」fmsgOpenSteps（片 2 折叠保活，活过 SSE 帧） */
+  const userOpen = !live && window.MONSTERA_CH && window.MONSTERA_CH.foldPersist !== false && fmsgOpenSteps.has(c.stepNo);
+  const cls = `${c.state || ''}${live ? ' live open' : (userOpen ? ' open' : '')}`.trim();
+  return `<div class="fmsg-chip ${cls}"${ext} data-step-no="${c.stepNo}">
     <div class="fmsg-chip-h">
       <span class="fmsg-chev">▸</span>${flag}
       <span class="fmsg-chip-t">${escHtml(title)}</span>
@@ -4743,6 +4750,22 @@ function agentViewRender(task){
        ② hasResult=true → 已结束，默认折叠
        （指令一要求：用 stepStates 语义，不再按 liveIdx 单最后一条，执行中步骤一律展开） */
   const chips = buildFmsgChips(evs);
+  /* 片 2 折叠保活：重建前捕获当前用户展开步（open 且非 live），并剪除已不存在的 stepNo。
+     串任务隔离：task_id 变化时【不携带旧任务的展开步】——先清空、跳过本次捕获，
+     让新任务从默认全折叠起步，避免 stepNo 跨任务泄漏。 */
+  if (window.MONSTERA_CH && window.MONSTERA_CH.foldPersist !== false){
+    if (fmsgOpenForTaskId !== task.task_id){
+      fmsgOpenSteps.clear();
+      fmsgOpenForTaskId = task.task_id;
+    } else {
+      v.querySelectorAll('.fmsg-chip.open:not(.live)').forEach(el => {
+        const n = parseInt(el.dataset.stepNo, 10);
+        if (Number.isInteger(n)) fmsgOpenSteps.add(n);
+      });
+      const alive = new Set(chips.map(c => c.stepNo));
+      fmsgOpenSteps.forEach(n => { if (!alive.has(n)) fmsgOpenSteps.delete(n); });
+    }
+  }
   const chipsHtml = chips.map((c) => fmsgChipHtml(c, c.hasCall && !c.hasResult)).join('');
 
   /* —— 模型自然文字（正常字号、正文直接呈现）—— */
@@ -5021,7 +5044,18 @@ function bindAgentDecision(){
         return;
       }
       const chip = e.target.closest('.fmsg-chip[data-ext]');
-      if (chip){ chip.classList.toggle('open'); return; }
+      if (chip){
+        const willOpen = !chip.classList.contains('open');
+        chip.classList.toggle('open', willOpen);
+        /* 片 2 折叠保活：同步用户展开集合（live 步强制展开、不参与持久化，跳过） */
+        if (window.MONSTERA_CH && window.MONSTERA_CH.foldPersist !== false && !chip.classList.contains('live')){
+          const n = parseInt(chip.dataset.stepNo, 10);
+          if (Number.isInteger(n)){
+            if (willOpen) fmsgOpenSteps.add(n); else fmsgOpenSteps.delete(n);
+          }
+        }
+        return;
+      }
       const btn = e.target.closest('.agent-btn[data-act]');
       if (btn){
         const act = btn.dataset.act;
