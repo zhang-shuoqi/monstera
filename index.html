@@ -291,6 +291,7 @@
     display:none;flex:1;overflow-y:auto;flex-direction:column;
     padding:26px 30px;color:var(--text);
     overflow-anchor:none;   /* 片 1 P4：防浏览器滚动锚定与脚本打架 */
+    position:relative;      /* 片 1：Agent 中间区「回到底部」按钮定位上下文 */
   }
   .app.mode-agent .task-view{display:flex}
   /* Agent 空状态：任务视图无内容时隐藏，输入框垂直居中；有任务/内容后自动回落底部（逻辑同聊天模式 .chat--empty）
@@ -498,7 +499,19 @@
     padding-top:4px;margin-top:0;
     font-family:var(--font-mono);
     overflow-anchor:none;   /* 片 1 P4：防浏览器滚动锚定与脚本打架 */
+    position:relative;      /* 片 1：右侧面板「回到底部」按钮定位上下文 */
   }
+  /* 片 1 P4：Agent 区通用「回到底部」小胶囊（分镜 B.4 规格：11px / 34% 灰 / 胶囊） */
+  .scroll-down-agent{
+    position:absolute;right:14px;bottom:12px;z-index:8;
+    display:none;align-items:center;gap:4px;
+    padding:3px 10px;border-radius:999px;
+    border:1px solid var(--gold-line-strong);
+    background:var(--panel-2);color:var(--dim);
+    font-size:11px;cursor:pointer;transition:.12s;
+  }
+  .scroll-down-agent:hover{color:var(--gold);border-color:var(--gold);background:var(--panel-3)}
+  .scroll-down-agent.show{display:inline-flex}
   .pane-row{
     display:flex;align-items:baseline;gap:7px;padding:3px 2px;border-radius:6px;
     font-size:11px;line-height:1.5;transition:.12s;
@@ -2555,7 +2568,7 @@ async function loadMessages(convId){
     });
     scrollBottom(messagesEl);
     _scrollState(messagesEl).up = false; // 打开对话默认贴底
-    updateScrollDownBtn();
+    updateRegionDownBtns();
   }catch(err){
     if (seq !== loadMessagesSeq) return;
     toast('加载消息失败：' + err.message);
@@ -2770,36 +2783,53 @@ function bindScrollRegion(el, btnEl, thr = 80){
   s.btn = btnEl || null; s.thr = thr;
   el.addEventListener('scroll', () => {
     s.up = !isPinnedToBottom(el, thr);
-    updateScrollDownBtn();
+    updateRegionDownBtns();
   });
   if (s.btn){
     s.btn.addEventListener('click', () => {
       scrollBottom(el);
       s.up = false;
-      updateScrollDownBtn();
+      updateRegionDownBtns();
     });
   }
 }
-/* 回到底部按钮的显隐（仅聊天区：Agent 区有自己的回底入口由片 4 统一） */
-const scrollDownBtn = $('scrollDownBtn');
-function updateScrollDownBtn(){
-  if (!scrollDownBtn) return;
-  const msg = _scrollState(messagesEl);
-  scrollDownBtn.classList.toggle('show', msg.up && !isPinnedToBottom(messagesEl, 12));
+/* 回区扫描：每个绑定了按钮的滚动区，按 own up 显隐自己的回底按钮（片 1 泛化，取代单聊天区逻辑） */
+function updateRegionDownBtns(){
+  _scrollRegions.forEach((s, el) => {
+    if (!s.btn) return;
+    s.btn.classList.toggle('show', s.up && !isPinnedToBottom(el, 12));
+  });
 }
+/* 回到底部按钮（聊天区实例）。Agent 两区的按钮在 initAgentScrollRegion 内创建。 */
+const scrollDownBtn = $('scrollDownBtn');
 bindScrollRegion(messagesEl, scrollDownBtn);
 /* Agent 区滚动主权（片 1）：中间时间线 + 右侧执行面板共用同一控制器。
    开关注册：观察者/验收可置 window.MONSTERA_CH.agentScroll=false 一键回退片 1。
    两个滚动容器需 overflow-anchor:none（CSS 已加），Safari 不支持故脚本判定自给。 */
 window.MONSTERA_CH = window.MONSTERA_CH || {};
 window.MONSTERA_CH.agentScroll = true;
-(function initAgentScrollRegion(){
-  if (!window.MONSTERA_CH.agentScroll) return;
-  const tv = $('taskView');
-  const ps = document.querySelector('.agent-pane-stream');
-  if (tv) bindScrollRegion(tv, null, 80);
-  if (ps) bindScrollRegion(ps, null, 80);
-})();
+/* 片 1 P4：Agent 区回底按钮 + 滚动绑定（渲染后调用，每次 ensure）：
+   - #taskView 节点稳定，仅首次绑定；按钮每次渲染后重挂（内容重建会抹掉它）。
+   - .agent-pane-stream 由 agentPaneRender 整体重建（新节点）→ 每次 ensure 重新 bind。
+   - ensure 幂等：已绑定的容器只更新按钮，不重复挂滚动监听。 */
+function ensureAgentScrollRegion(el){
+  if (!window.MONSTERA_CH || window.MONSTERA_CH.agentScroll === false) return;
+  if (!el) return;
+  el.querySelector('.scroll-down-agent')?.remove();
+  const b = document.createElement('button');
+  b.className = 'scroll-down-agent';
+  b.title = '回到底部'; b.setAttribute('aria-label', '回到底部');
+  b.textContent = '回到底部';
+  el.appendChild(b);
+  if (_scrollRegions.has(el)){
+    const s = _scrollRegions.get(el);
+    s.btn = b;
+    b.addEventListener('click', () => { scrollBottom(el); s.up = false; updateRegionDownBtns(); });
+  } else {
+    bindScrollRegion(el, b, 80);
+  }
+  updateRegionDownBtns();
+}
 
 function addUserMsg(text, images, msgId){
   const div = document.createElement('div');
@@ -4772,6 +4802,7 @@ function agentViewRender(task){
       </div></div>
     </div>
   </div>`;
+  ensureAgentScrollRegion(v);   // 片 1 P4：中间区回底按钮重挂 + 滚动绑定（首次生效）
   if (window.MONSTERA_CH && window.MONSTERA_CH.agentScroll !== false){
     maybeAutoScroll(v);   // Agent 中间时间线：仅贴底时跟随；用户上翻不再被拉回（片 1 P4）
     requestAnimationFrame(() => { maybeAutoScroll(v); });  // 布局刷新后再判，确保打开历史长任务时底部完成卡可见
@@ -4928,6 +4959,7 @@ function agentPaneRender(task){
     ${footer}`;
   const stream = body.querySelector('.agent-pane-stream');
   if (stream){
+    ensureAgentScrollRegion(stream);   // 片 1 P4：面板流每次重建后重挂按钮 + 重新绑定
     if (window.MONSTERA_CH && window.MONSTERA_CH.agentScroll !== false){
       maybeAutoScroll(stream);   // 右侧面板滚动主权：仅贴底时跟随（片 1 P4）
     } else {
