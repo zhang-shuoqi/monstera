@@ -1,0 +1,16 @@
+{
+  "task_id": "b3a036364455",
+  "objective": "Phase5 ??",
+  "status": "idle",
+  "created_at": 1788252220.934511,
+  "updated_at": 1788252220.9345112,
+  "completed_at": null,
+  "loop_iterations": 0,
+  "tool_call_count": 0,
+  "final_answer": null,
+  "fail_reason": null,
+  "created_files": [],
+  "model_usage": {},
+  "estimated_cost": null,
+  "snapshot_path": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\b3a036364455.json"
+}

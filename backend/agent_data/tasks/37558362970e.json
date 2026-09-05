@@ -1,0 +1,19 @@
+{
+  "task_id": "37558362970e",
+  "objective": "测试Agent模式任务发送",
+  "status": "completed",
+  "created_at": 1788255898.2962124,
+  "updated_at": 1788255899.1110628,
+  "completed_at": 1788255899.1069772,
+  "loop_iterations": 1,
+  "tool_call_count": 0,
+  "final_answer": "[Mock 模拟回复｜假数据，未调用真实 API]\n收到你的消息：「你是 Monstera 单用户本地 Agent。用户委托你完成一个目标。\n【用户目标】测试Agent模式任务发送\n【可用」\n这是本对话的第一条消息（新对话，无历史上下文）。\n（使用模型：deepseek-v4-flash）",
+  "fail_reason": null,
+  "created_files": [],
+  "model_usage": {
+    "prompt_tokens": 1804,
+    "completion_tokens": 196
+  },
+  "estimated_cost": 0.0024,
+  "snapshot_path": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\37558362970e.json"
+}

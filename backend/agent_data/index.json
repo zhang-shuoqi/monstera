@@ -1,0 +1,162 @@
+[
+  {
+    "taskId": "bff0c54f592e",
+    "objective": "????:?????",
+    "title": "cors探针",
+    "pinned": false,
+    "status": "idle",
+    "createdAt": 1788349943.7050903,
+    "completedAt": null,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\bff0c54f592e.json"
+  },
+  {
+    "taskId": "37558362970e",
+    "objective": "测试Agent模式任务发送",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788255898.2962124,
+    "completedAt": 1788255899.1069772,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\37558362970e.json"
+  },
+  {
+    "taskId": "cd7c2ac7d0e4",
+    "objective": "列出当前目录结构",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788255411.1922803,
+    "completedAt": 1788255412.652677,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\cd7c2ac7d0e4.json"
+  },
+  {
+    "taskId": "bfcd69a48974",
+    "objective": "列出当前项目目录结构",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788255110.4348884,
+    "completedAt": 1788255111.7569487,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\bfcd69a48974.json"
+  },
+  {
+    "taskId": "59be8155680a",
+    "objective": "????",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788255015.2354944,
+    "completedAt": 1788255015.2912028,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\59be8155680a.json"
+  },
+  {
+    "taskId": "b3a036364455",
+    "objective": "Phase5 ??",
+    "title": null,
+    "pinned": false,
+    "status": "idle",
+    "createdAt": 1788252220.934511,
+    "completedAt": null,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\b3a036364455.json"
+  },
+  {
+    "taskId": "6486e226dd8f",
+    "objective": "Phase5 ??",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788252220.7300022,
+    "completedAt": 1788252220.9162116,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\6486e226dd8f.json"
+  },
+  {
+    "taskId": "ffebbd6f77af",
+    "objective": "读取 C:\\Windows\\system32\\drivers\\etc\\hosts",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788250716.949162,
+    "completedAt": 1788250786.540471,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\ffebbd6f77af.json"
+  },
+  {
+    "taskId": "744279e259ad",
+    "objective": "Phase 4 UI 验收：读取 C:\\Windows 需要确认",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788250525.0969589,
+    "completedAt": 1788250590.537746,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\744279e259ad.json"
+  },
+  {
+    "taskId": "393cc6e8efe2",
+    "objective": "Phase 4 时间线持久化验收",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788250210.8239665,
+    "completedAt": 1788250211.995604,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\393cc6e8efe2.json"
+  },
+  {
+    "taskId": "cce58f6a0305",
+    "objective": "列出桌面所有文件",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788249645.2250836,
+    "completedAt": 1788249664.8854077,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\cce58f6a0305.json"
+  },
+  {
+    "taskId": "3101d2f0e358",
+    "objective": "修正后工具箱端到端验收",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788248667.2782195,
+    "completedAt": 1788248685.381217,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\3101d2f0e358.json"
+  },
+  {
+    "taskId": "dc6e3c042e3f",
+    "objective": "HTTP 验收：写 Windows 系统目录被拒绝后换方案",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788247890.601425,
+    "completedAt": 1788247974.9125776,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\dc6e3c042e3f.json"
+  },
+  {
+    "taskId": "05fc5b5be7a9",
+    "objective": "验收 Phase 1：真实调用 list_dir / file_read / memory_search",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788245547.891129,
+    "completedAt": 1788245604.279951,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\05fc5b5be7a9.json"
+  },
+  {
+    "taskId": "583c3a3f8cf1",
+    "objective": "修复后复验：验证空循环仍在正常转动",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788244695.4124389,
+    "completedAt": 1788244710.3844628,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\583c3a3f8cf1.json"
+  },
+  {
+    "taskId": "9850a19bf606",
+    "objective": "验证 Phase 0 骨架：列出桌面文件（HTTP 空循环）",
+    "title": null,
+    "pinned": false,
+    "status": "completed",
+    "createdAt": 1788243735.4252195,
+    "completedAt": 1788243763.9189935,
+    "snapshotPath": "D:\\My\\Monstera\\backend\\agent_data\\tasks\\9850a19bf606.json"
+  }
+]

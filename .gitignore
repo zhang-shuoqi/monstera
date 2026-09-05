@@ -1,0 +1,18 @@
+# 本地模型资源（大体积二进制，不入库）
+backend/models/*.gguf
+backend/models/*.dll
+backend/models/*.exe
+
+# 数据库 / 运行时产物
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+backend/*.log
+backend/.key
+backend/.env
+
+# 依赖
+desktop/node_modules/
+__pycache__/
+*.pyc
+.venv/

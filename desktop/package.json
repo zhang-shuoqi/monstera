@@ -1,0 +1,62 @@
+{
+  "name": "monstera-desktop",
+  "version": "0.1.0",
+  "description": "Monstera 桌面壳：自动拉起本地 FastAPI 后端并加载主界面",
+  "author": "Monstera",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build:backend": "node scripts/build-backend.js",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.monstera.desktop",
+    "productName": "Monstera",
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/",
+      "cache": "build/electron-cache"
+    },
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../index.html",
+        "to": "index.html"
+      },
+      {
+        "from": "build/backend",
+        "to": "backend"
+      }
+    ],
+    "artifactName": "Monstera-Setup-${version}-未签名测试版.exe",
+    "directories": {
+      "output": "build/release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

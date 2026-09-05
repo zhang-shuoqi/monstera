@@ -1,0 +1,4 @@
+{"taskId": "37558362970e", "type": "INTENT_RECEIVED", "payload": {"objective": "测试Agent模式任务发送"}, "timestamp": 1788255898.313602}
+{"taskId": "37558362970e", "type": "OBJECTIVE_DEFINED", "payload": {"objective": "测试Agent模式任务发送"}, "timestamp": 1788255898.3144946}
+{"taskId": "37558362970e", "type": "STEP_STARTED", "payload": {"step": 1}, "timestamp": 1788255898.3150806}
+{"taskId": "37558362970e", "type": "TASK_COMPLETED", "payload": {"answer": "[Mock 模拟回复｜假数据，未调用真实 API]\n收到你的消息：「你是 Monstera 单用户本地 Agent。用户委托你完成一个目标。\n【用户目标】测试Agent模式任务发送\n【可用」\n这是本对话的第一条消息（新对话，无历史上下文）。\n（使用模型：deepseek-v4-flash）", "iterations": 1, "toolCalls": 0}, "timestamp": 1788255899.1047094}

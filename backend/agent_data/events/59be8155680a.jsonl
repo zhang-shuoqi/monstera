@@ -1,0 +1,16 @@
+{"taskId": "59be8155680a", "type": "INTENT_RECEIVED", "payload": {"objective": "????"}, "timestamp": 1788255015.2727034}
+{"taskId": "59be8155680a", "type": "OBJECTIVE_DEFINED", "payload": {"objective": "????"}, "timestamp": 1788255015.2733376}
+{"taskId": "59be8155680a", "type": "STEP_STARTED", "payload": {"step": 1}, "timestamp": 1788255015.274005}
+{"taskId": "59be8155680a", "type": "TOOL_CALL_REQUESTED", "payload": {"tool": "fake_probe", "args": {"n": 1}, "toolCalls": 1}, "timestamp": 1788255015.2768579}
+{"taskId": "59be8155680a", "type": "TOOL_RESULT_RECEIVED", "payload": {"tool": "fake_probe", "success": true, "error": null, "data": {"args": {"n": 1}, "fake": true}}, "timestamp": 1788255015.27809}
+{"taskId": "59be8155680a", "type": "OBSERVATION_READY", "payload": {"observation": {"step": 1, "toolName": "fake_probe", "success": true, "summary": "[fake_probe] 已返回：{'args': {'n': 1}, 'fake': True}"}}, "timestamp": 1788255015.2788074}
+{"taskId": "59be8155680a", "type": "STEP_STARTED", "payload": {"step": 2}, "timestamp": 1788255015.279191}
+{"taskId": "59be8155680a", "type": "TOOL_CALL_REQUESTED", "payload": {"tool": "fake_probe", "args": {"n": 2}, "toolCalls": 2}, "timestamp": 1788255015.2821195}
+{"taskId": "59be8155680a", "type": "TOOL_RESULT_RECEIVED", "payload": {"tool": "fake_probe", "success": true, "error": null, "data": {"args": {"n": 2}, "fake": true}}, "timestamp": 1788255015.2833848}
+{"taskId": "59be8155680a", "type": "OBSERVATION_READY", "payload": {"observation": {"step": 2, "toolName": "fake_probe", "success": true, "summary": "[fake_probe] 已返回：{'args': {'n': 2}, 'fake': True}"}}, "timestamp": 1788255015.2836998}
+{"taskId": "59be8155680a", "type": "STEP_STARTED", "payload": {"step": 3}, "timestamp": 1788255015.2840705}
+{"taskId": "59be8155680a", "type": "TOOL_CALL_REQUESTED", "payload": {"tool": "fake_probe", "args": {"n": 3}, "toolCalls": 3}, "timestamp": 1788255015.286472}
+{"taskId": "59be8155680a", "type": "TOOL_RESULT_RECEIVED", "payload": {"tool": "fake_probe", "success": true, "error": null, "data": {"args": {"n": 3}, "fake": true}}, "timestamp": 1788255015.2877345}
+{"taskId": "59be8155680a", "type": "OBSERVATION_READY", "payload": {"observation": {"step": 3, "toolName": "fake_probe", "success": true, "summary": "[fake_probe] 已返回：{'args': {'n': 3}, 'fake': True}"}}, "timestamp": 1788255015.28807}
+{"taskId": "59be8155680a", "type": "STEP_STARTED", "payload": {"step": 4}, "timestamp": 1788255015.288426}
+{"taskId": "59be8155680a", "type": "TASK_COMPLETED", "payload": {"answer": "空循环演示完成：转了 3 圈，目标『????』已处理。", "iterations": 4, "toolCalls": 3}, "timestamp": 1788255015.290951}
