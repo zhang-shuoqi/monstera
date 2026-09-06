@@ -516,7 +516,7 @@
   }
 
   /* ============ 中间区：Codex 式自由消息流（无气泡/卡片/时间线，只靠左右位置、头像、间距区分） ============ */
-  .fmsg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:22px;padding:16px 26px 24px}
+  .fmsg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:20px;padding:16px 24px 24px}
   /* 运行中活动条：sticky 顶部固定显示"正在做什么"（OpenHands live chip 语义） */
   .fmsg-live{
     position:sticky;top:6px;z-index:2;align-self:flex-start;
@@ -662,8 +662,8 @@
 
   .messages{
     flex:1;overflow-y:auto;
-    display:flex;flex-direction:column;gap:26px;
-    padding:36px 42px;
+    display:flex;flex-direction:column;gap:24px;
+    padding:36px 40px;
     scroll-behavior:smooth;
     overflow-anchor:none;   /* 片 1 P4：防浏览器滚动锚定与脚本打架 */
   }
@@ -1608,7 +1608,7 @@
   .conv-ic{width:14px;height:14px;flex:none;margin-top:.5px}
 
   /* —— 中间对话区：正文列宽与呼吸感（Phase 6：留白对称、列限宽、字号上调） —— */
-  .messages{padding:34px 40px;gap:26px}
+  .messages{padding:34px 40px;gap:24px}
   .msg-user{
     max-width:72%;
     border-radius:16px 16px 5px 16px;padding:11px 16px;
