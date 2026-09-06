@@ -148,7 +148,7 @@ async function apiFetch(path, method = 'GET', body = null){
   try{ data = await r.json(); }catch(_){}
   if (!r.ok){
     const d = data && (data.detail || data.message);
-    throw new Error(typeof d === 'string' ? d : `请求失败（${r.status}）`);
+    throw new Error(humanizeApiErr(d, r.status));  /* 片7 #3：API 错误人话化，消除裸 API 错误上屏 */
   }
   return data;
 }
@@ -2370,6 +2370,20 @@ function fmtFailReason(r){
   };
   const key = String(r || '').toLowerCase();
   return m[key] || (String(r || '').trim() ? r : '未知原因');
+}
+/* 片7 #3：API 错误人话化——把后端/底层裸错误码映射为陈述句，不让裸 API 错误上屏 */
+function humanizeApiErr(d, status){
+  const s = String((typeof d === 'string' && d.trim()) ? d : '').toLowerCase();
+  if (/invalid.{0,4}api.?key|api.?key.{0,4}invalid|apikey/.test(s)) return 'API Key 无效，请检查后重试';
+  if (/unauthorized|invalid_token|401|authentication/.test(s) || s.indexOf('认证') >= 0) return '认证失败，请检查 API Key';
+  if (/(insufficient|balance|402)/.test(s) || s.indexOf('余额') >= 0) return '余额不足，请充值后重试';
+  if (/(429|rate.?limit|too many|削峰)/.test(s) || s.indexOf('频繁') >= 0 || s.indexOf('限流') >= 0) return '请求过于频繁，请稍后重试';
+  if (/404|not found|invalid.?model|unsupported|不存在/.test(s) || s.indexOf('无效的模型') >= 0) return '模型不可用，请检查模型配置';
+  if (/(timeout|超时)/.test(s)) return '请求超时，请稍后重试';
+  if (/无法连接|no response|unreachable/.test(s) || s.indexOf('未响应') >= 0) return '无法连接后端服务';
+  /* 兜底：后端已写人话的（含中文）直接透传；纯英文/内部码一律只陈述状态码，不吐裸 detail 上屏 */
+  const hasCjk = /[\u4e00-\u9fff]/.test(String(d || ''));
+  return (typeof d === 'string' && d.trim() && hasCjk) ? d : `请求失败（${status || ''}）`;
 }
 function fmsgToolLabel(tool, args){
   /* 按工具+参数生成自然短语：文件类带文件名，其余回退到语义字段或「调用 <tool>」 */
