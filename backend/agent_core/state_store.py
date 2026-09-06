@@ -17,6 +17,9 @@
 from __future__ import annotations
 
 import json
+import logging
+
+from dataclasses import asdict, dataclass, field
 import os
 import tempfile
 import threading
@@ -26,6 +29,9 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+
+log = logging.getLogger("monstera.state_store")
 
 
 class TaskStatus(str, Enum):
@@ -353,6 +359,7 @@ class StateStore:
                     self._index = data if isinstance(data, list) else []
                 except Exception:
                     self._index = []
+                    log.warning("index_rows 读穿 index.js 失败，历史列表临时为空（%s）", self._index_path)
             return [dict(r) for r in self._index]
 
     def delete_task(self, task_id: str) -> bool:
