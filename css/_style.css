@@ -461,38 +461,37 @@
   /* 片6 静默航标：移除 pulseLine 循环，航标改纯色静止 */
 
   /* —— Phase 6 对标 dsh/Codex：执行轨迹与任务步骤按「轮次(Turn)」分组折叠 —— */
-  .pane-turnbar,.tv-turnbar{display:flex;justify-content:flex-end;gap:6px;padding:2px 0 6px}
-  .pane-turnbar button,.tv-turnbar button{
+  .pane-turnbar{display:flex;justify-content:flex-end;gap:6px;padding:2px 0 6px}
+  .pane-turnbar button{
     font-size:10.5px;color:var(--dim);padding:2px 9px;border-radius:999px;cursor:pointer;
     border:1px solid rgba(233,232,239,.12);background:transparent;transition:.14s;
   }
-  .pane-turnbar button:hover,.tv-turnbar button:hover{color:var(--gold);border-color:var(--gold-line-strong)}
-  .pane-turn,.tv-turn{
+  .pane-turnbar button:hover{color:var(--gold);border-color:var(--gold-line-strong)}
+  .pane-turn{
     border:1px solid rgba(233,232,239,.07);border-radius:8px;margin-bottom:3px;overflow:hidden;
     background:rgba(233,232,239,.025);  /* 片6 P6 卷宗化：档案盒底 */
   }
-  .pane-turn-head,.tv-turn-head{
+  .pane-turn-head{
     display:flex;align-items:center;gap:7px;padding:5px 8px;cursor:pointer;user-select:none;transition:.12s;
   }
-  .pane-turn-head:hover,.tv-turn-head:hover{background:rgba(233,232,239,.04)}
-  .pane-turn-chev,.tv-turn-chev{font-size:9px;color:var(--dim);transition:transform .15s;flex:none;width:10px}
-  .pane-turn.exp .pane-turn-chev,.tv-turn.exp .tv-turn-chev{transform:rotate(90deg)}
-  .pane-turn-t,.tv-turn-t{font-size:11px;font-weight:600;color:#c6c3cc}
-  .pane-turn-meta,.tv-turn-meta{font-size:10.5px;color:rgba(233,232,239,.42)}
-  .pane-turn.live .pane-turn-head,.tv-turn.live .tv-turn-head{background:rgba(227,199,159,.05)}
-  .pane-turn.live .pane-turn-t,.tv-turn.live .tv-turn-t{color:var(--gold)}
-  .pane-turn-phase,.tv-turn-phase{
+  .pane-turn-head:hover{background:rgba(233,232,239,.04)}
+  .pane-turn-chev{font-size:9px;color:var(--dim);transition:transform .15s;flex:none;width:10px}
+  .pane-turn.exp .pane-turn-chev{transform:rotate(90deg)}
+  .pane-turn-t{font-size:11px;font-weight:600;color:#c6c3cc}
+  .pane-turn-meta{font-size:10.5px;color:rgba(233,232,239,.42)}
+  .pane-turn.live .pane-turn-head{background:rgba(227,199,159,.05)}
+  .pane-turn.live .pane-turn-t{color:var(--gold)}
+  .pane-turn-phase{
     margin-left:auto;font-size:9.5px;color:var(--gold);letter-spacing:.05em;
   }
   .pane-turn-body{display:none;padding:2px 6px 6px}
-  .tv-turn-body{display:none;padding:4px 6px}
-  .pane-turn.exp .pane-turn-body,.tv-turn.exp .tv-turn-body{display:block}
+  .pane-turn.exp .pane-turn-body{display:block}
   /* 轮组头预览行（折叠态显示首条调用摘要） */
-  .pane-turn-prev,.tv-turn-prev{
+  .pane-turn-prev{
     flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     font-size:10.5px;color:rgba(233,232,239,.4);font-family:var(--font-mono);
   }
-  .pane-turn.exp .pane-turn-prev,.tv-turn.exp .tv-turn-prev{display:none}
+  .pane-turn.exp .pane-turn-prev{display:none}
   /* 展开区「复制」ghost 按钮（Codex copy-output 语义） */
   .extra-copy{
     margin-left:8px;padding:1px 9px;border-radius:999px;font-size:9.5px;cursor:pointer;

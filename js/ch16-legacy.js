@@ -2881,17 +2881,17 @@ function bindAgentDecision(){
         return;
       }
       // Phase 6：轮次组折叠切换 + 全部展开/全部折叠
-      const turnHead = e.target.closest('.pane-turn-head, .tv-turn-head');
+      const turnHead = e.target.closest('.pane-turn-head');
       if (turnHead){
         turnHead.parentElement.classList.toggle('exp');
         return;
       }
-      if (e.target.closest('#paneUnfoldAll, #tvUnfoldAll')){
-        container.querySelectorAll('.pane-turn, .tv-turn').forEach(t => t.classList.add('exp'));
+      if (e.target.closest('#paneUnfoldAll')){
+        container.querySelectorAll('.pane-turn').forEach(t => t.classList.add('exp'));
         return;
       }
-      if (e.target.closest('#paneFoldAll, #tvFoldAll')){
-        container.querySelectorAll('.pane-turn, .tv-turn').forEach(t => t.classList.remove('exp'));
+      if (e.target.closest('#paneFoldAll')){
+        container.querySelectorAll('.pane-turn').forEach(t => t.classList.remove('exp'));
         return;
       }
       // Codex 式消息流：点击过程消息行 → 展开/收起全文（当前执行中自动展开，其余默认折叠）
