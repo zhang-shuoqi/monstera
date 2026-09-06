@@ -45,10 +45,24 @@ app.include_router(agent.router)
 from pathlib import Path as _Path
 from fastapi.staticfiles import StaticFiles as _StaticFiles
 _PROJECT_ROOT = _Path(__file__).resolve().parent.parent
+
+
+class _NoCacheStatic(_StaticFiles):
+    """静态文件响应统一加 Cache-Control: no-cache（js/css/vendor）。
+
+    消除浏览器持久缓存墙：前端改动后无需 ?rev= 也能拿到最新字节。
+    HTML 已由根路由单独带 no-cache，此处覆盖 js/css/vendor。"""
+
+    def file_response(self, *args, **kwargs):
+        resp = super().file_response(*args, **kwargs)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 for _sub in ("css", "js", "vendor"):
     _dir = _PROJECT_ROOT / _sub
     if _dir.is_dir():
-        app.mount(f"/{_sub}", _StaticFiles(directory=str(_dir)), name=_sub)
+        app.mount(f"/{_sub}", _NoCacheStatic(directory=str(_dir)), name=_sub)
 
 
 # 内置厂商清单：新增厂商只需在此加一行（+ 对应计费规则），启动时自动种子化，
