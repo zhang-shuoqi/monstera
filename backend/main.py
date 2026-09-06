@@ -40,6 +40,17 @@ app.include_router(memory.router)
 app.include_router(agent.router)
 
 
+# 前端拆分（片3 3-A）后：css/js/vendor 由后端单源伺服。
+# 保证 http://127.0.0.1:8765/ 一个源即可完整加载外部资源（不依赖独立静态服务器）。
+from pathlib import Path as _Path
+from fastapi.staticfiles import StaticFiles as _StaticFiles
+_PROJECT_ROOT = _Path(__file__).resolve().parent.parent
+for _sub in ("css", "js", "vendor"):
+    _dir = _PROJECT_ROOT / _sub
+    if _dir.is_dir():
+        app.mount(f"/{_sub}", _StaticFiles(directory=str(_dir)), name=_sub)
+
+
 # 内置厂商清单：新增厂商只需在此加一行（+ 对应计费规则），启动时自动种子化，
 # 无需改代码。字段说明：
 #   name / display_name / base_url（必填，OpenAI 兼容端点）/ balance_url（可选）/ docs_url
