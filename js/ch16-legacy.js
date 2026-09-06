@@ -98,12 +98,31 @@ const STATUS_COLOR = { '正常': 'green', '缓慢': 'yellow', '异常': 'red', '
 /* ===================== 工具 ===================== */
 const $ = id => document.getElementById(id);
 let toastTimer = null;
+/* —— P3 Toast 统一调度器：单元素、队列 + 去重 + 合并。
+   保持 toast(msg) 调用方式、显示样式/时长(2200ms)/位置不变；
+   同一文案同时段去重（当前显示或队列中已存在则不重复入队，避免闪烁）；
+   多条不同 toast 排队顺序展示（单元素不堆叠、不丢失）。 */
+const _toastQueue = [];
+let _toastActive = false;
+let _toastCurrent = '';
 function toast(msg){
+  if (msg == null) msg = '';
+  msg = String(msg);
+  if (_toastActive && msg === _toastCurrent) return;   // 去重：正在显示的相同文案不重启
+  if (_toastQueue.indexOf(msg) >= 0) return;           // 合并：同名已在队列不重复入队
+  _toastQueue.push(msg);
+  if (!_toastActive) _toastNext();
+}
+function _toastNext(){
+  if (!_toastQueue.length){ _toastActive = false; return; }
+  _toastActive = true;
+  _toastCurrent = _toastQueue.shift();
   const t = $('toast');
-  t.textContent = msg;
+  if (!t){ _toastActive = false; return; }
+  t.textContent = _toastCurrent;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); _toastNext(); }, 2200);
 }
 
 const FETCH_TIMEOUT_MS = 15000; // 后端假死时的兜底超时
