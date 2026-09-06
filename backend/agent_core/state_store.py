@@ -341,6 +341,14 @@ class StateStore:
 
     def index_rows(self) -> List[Dict[str, Any]]:
         with self._lock:
+            # 定稿一：内存读穿缓存——冷启动/restore 未种子化时以磁盘 index.json 为准兜底，
+            # 避免有历史任务却首查返空（磁盘为准，内存为读穿缓存；磁盘缺失则维持空表）。
+            if not self._index and self._index_path.exists():
+                try:
+                    data = json.loads(self._index_path.read_text(encoding="utf-8"))
+                    self._index = data if isinstance(data, list) else []
+                except Exception:
+                    self._index = []
             return [dict(r) for r in self._index]
 
     def delete_task(self, task_id: str) -> bool:
