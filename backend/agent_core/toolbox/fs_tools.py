@@ -10,11 +10,29 @@
 """
 from __future__ import annotations
 
+import difflib
 import os
 import pathlib
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from . import Tool, ToolResult
+
+
+def _unified_diff(path: str, old_text: str, new_text: str) -> str:
+    """生成 unified diff（编辑时刻计算）；旧/新任一非纯文本则返回 ''（二进制/非 UTF-8 不产出 diff）。
+
+    只服务 C3 文件证据：`+` 行新增 / `-` 行删除。若内容未变化也返回空串。"""
+    try:
+        old_d = old_text.encode("utf-8", "strict").decode("utf-8", "strict")
+        new_d = new_text.encode("utf-8", "strict").decode("utf-8", "strict")
+    except UnicodeError:
+        return ""
+    if old_d == new_d:
+        return ""
+    return "".join(difflib.unified_diff(
+        old_d.splitlines(keepends=True),
+        new_d.splitlines(keepends=True),
+        fromfile=path, tofile=path, lineterm=""))
 
 
 class ListDirTool(Tool):
@@ -153,6 +171,11 @@ class FileEditTool(Tool):
                     f"或设置 replace_all=true 全部替换。"
                 ))
             new_content = content.replace(old_string, new_string)
+            # 定稿二：编辑时刻统一 diff；文件非纯文本则不产出（old_strict=None）
+            try:
+                old_strict = p.read_text(encoding="utf-8", errors="strict")
+            except (UnicodeDecodeError, OSError):
+                old_strict = None
             p.write_text(new_content, encoding="utf-8")
             return ToolResult(success=True, data={
                 "path": str(p),
@@ -160,6 +183,7 @@ class FileEditTool(Tool):
                 "replaced": "once" if count == 1 else f"all({count})",
                 "summary": f"已替换 {count} 处（{old_string[:60]!r} → {new_string[:60]!r}）",
                 "bytes": os.path.getsize(p),
+                "diff": "" if old_strict is None else _unified_diff(str(p), old_strict, new_content),
             })
         except Exception as exc:
             return ToolResult(success=False, error=f"file_edit 失败: {exc}")
@@ -189,13 +213,22 @@ class FileWriteTool(Tool):
         try:
             if p.parent and not p.parent.exists():
                 p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(str(content), encoding="utf-8")
+            new_text = str(content)
+            # 定稿二：编辑/写入时刻计算 unified diff（overwritten 对比旧内容；created 视为全行新增）
+            old_strict = "" if not existed_before else None
+            if existed_before:
+                try:
+                    old_strict = p.read_text(encoding="utf-8", errors="strict")
+                except (UnicodeDecodeError, OSError):
+                    old_strict = None
+            p.write_text(new_text, encoding="utf-8")
             return ToolResult(success=True, data={
                 "path": str(p),
                 "mode": mode,          # "created" | "overwritten"
                 "created": not existed_before,
                 "overwritten": existed_before,
                 "bytes": os.path.getsize(p),
+                "diff": "" if old_strict is None else _unified_diff(str(p), old_strict, new_text),
             })
         except Exception as exc:
             return ToolResult(success=False, error=f"file_write 失败: {exc}")
