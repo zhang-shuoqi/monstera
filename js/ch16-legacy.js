@@ -2356,6 +2356,21 @@ function fmsgBasename(p){
   const seg = s.split('/').filter(Boolean);
   return seg.length ? seg[seg.length - 1] : s;
 }
+/* 片7 翻译表：裸工具名/失败原因 → 人话（消除确认卡/失败卡/兜底处的内部标识泄漏） */
+function fmtToolBase(tool){
+  const base = { file_write:'写入文件', file_edit:'编辑文件', file_read:'读取文件', list_dir:'查看目录' }[tool];
+  return base || String(tool || '').replace(/_/g, ' ').trim() || '未知操作';
+}
+function fmtFailReason(r){
+  const m = {
+    user_stopped: '已被用户中止', user_interrupt: '已被用户中止',
+    plan_denied: '计划被拒绝', plan_rejected: '计划被拒绝',
+    max_iterations: '已达最大迭代轮数', max_tool_calls: '已达最大工具调用数',
+    timeout: '执行超时', step_timeout: '单步超时', error: '执行出错',
+  };
+  const key = String(r || '').toLowerCase();
+  return m[key] || (String(r || '').trim() ? r : '未知原因');
+}
 function fmsgToolLabel(tool, args){
   /* 按工具+参数生成自然短语：文件类带文件名，其余回退到语义字段或「调用 <tool>」 */
   const a = args && typeof args === 'object' ? args : {};
@@ -2369,7 +2384,7 @@ function fmsgToolLabel(tool, args){
   if (map[tool]) return map[tool];
   if (a.command || a.script) return `运行 ${a.command || a.script}`;
   if (a.query || a.keyword || a.search) return `搜索 ${a.query || a.keyword || a.search}`;
-  return `调用 ${tool}`;
+  return `调用 ${fmtToolBase(tool)}`;  /* 片7：兜底不再泄漏裸工具名 */
 }
 function fmsgDump(data, label){
   /* P2 统一策略：详情区截断(TRUNC_N)+省略号+悬浮完整(title)；原文存 data-full 供「复制」取全文（显示不留全量） */
@@ -2504,7 +2519,7 @@ function renderAgentViewIncremental(v, task){
       userText: task.objective || '',
       liveLabel: running ? (agentLiveLabel(task.events || []) || '执行中…') : '',
       chips,
-      metaLine, costLine, failTitle, failReason: task.fail_reason || '未知原因',
+      metaLine, costLine, failTitle, failReason: fmtFailReason(task.fail_reason),
     });
     v.innerHTML = `<div class="fmsg" x-data="monsteraAvData()" x-cloak>
   <div class="fmsg-live" x-show="running" x-text="liveLabel"></div>
@@ -2548,7 +2563,7 @@ function renderAgentViewIncremental(v, task){
     d.liveLabel = running ? (agentLiveLabel(task.events || []) || '执行中…') : '';
     d.chips = chips;
     d.metaLine = metaLine; d.costLine = costLine; d.failTitle = failTitle;
-    d.failReason = task.fail_reason || '未知原因';
+    d.failReason = fmtFailReason(task.fail_reason);
   }
   /* 流式正文：textContent 追加，不碰 Alpine */
   if (ok){
@@ -2601,7 +2616,7 @@ function agentViewRender(task){
     const isPlan = p.level === 'plan_confirm';
     confirm = `<div class="agent-confirm" id="agentConfirm">
       <div class="agent-confirm-t">${isPlan ? '📋 计划确认' : '⚠ 危险操作 · 等待你确认'}</div>
-      <div class="agent-confirm-d">${isPlan ? escHtml(p.reason) : `工具：<b>${escHtml(p.tool)}</b><br>${escHtml(p.reason)}`}</div>
+      <div class="agent-confirm-d">${isPlan ? escHtml(p.reason) : `工具：<b>${escHtml(fmtToolBase(p.tool))}</b><br>${escHtml(p.reason)}`}</div>
       <div class="agent-confirm-btns">
         <button class="agent-btn allow" data-act="allow">${isPlan ? '开始执行' : '允许'}</button>
         <button class="agent-btn deny" data-act="deny">${isPlan ? '取消' : '拒绝'}</button>
@@ -2658,7 +2673,7 @@ function agentViewRender(task){
       : `<div class="fmsg-done err"><span class="fmsg-done-ic">!</span>
           <div class="fmsg-done-bd">
             <div class="fmsg-done-t">${failTitle}</div>
-            <div class="fmsg-done-r">${escHtml(task.fail_reason || '未知原因')}</div>
+            <div class="fmsg-done-r">${escHtml(fmtFailReason(task.fail_reason))}</div>
             <div class="fmsg-done-meta">${meta}</div>
           </div></div>`;
     // 费用行：左侧图标（复制模型总结 / 从头重试）+ 弱化小字费用，只在终态出现
