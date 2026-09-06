@@ -804,7 +804,7 @@ async function sendMessage(payload){
       if (!resp.ok){
         let data = null; try{ data = await resp.json(); }catch(_){}
         const d = data && (data.detail || data.message);
-        fail(typeof d === 'string' ? d : `请求失败（${resp.status}）`);
+        fail(humanizeApiErr(d, resp.status));  /* 片7 #3 补齐：聊天流式端点同样人话化，消除裸 API 错误上屏 */
         return;
       }
       const reader = resp.body.getReader();
