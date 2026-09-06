@@ -201,8 +201,9 @@ def _task_snapshot(core: AgentCore, task_id: str) -> Dict[str, Any]:
     payload = task.to_dict()
     events = core.timeline(task_id)
     payload["events"] = events
-    # 快照层只读装饰：failed 任务细分终止类型，供前端渲染终态卡片文案（不改内核状态机）
-    payload["meta"] = {"terminate_kind": _terminate_kind(events) if payload.get("status") == "failed" else None}
+    # 快照层装饰：failed 任务直接读持久化 terminate_kind（定稿三，与刷新/重拉三读源一致），不再临时推导
+    tk = getattr(task, "terminate_kind", "error")
+    payload["meta"] = {"terminate_kind": tk if payload.get("status") == "failed" else None}
     return payload
 
 

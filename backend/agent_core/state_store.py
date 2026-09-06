@@ -67,6 +67,9 @@ class TaskState:
     # 终止信息
     final_answer: Optional[str] = None
     fail_reason: Optional[str] = None
+    # 定稿三：终止类型（失败任务的细分语义，持久化；存量/未知默认 "error"）
+    #   取值：completed 亦存；失败类 = user_interrupt / interrupted / plan_denied / error(含 limit/timeout/model_error)
+    terminate_kind: str = "error"
     # 覆盖判断：本次任务自己创建过的文件集合（任务开始时记录 → 运行中累积）
     created_files: List[str] = field(default_factory=list)
     # Phase 3：模型 token 用量（成本感知前置记录，界面展示用）
@@ -92,6 +95,7 @@ class TaskState:
             "title": self.title,
             "pinned": self.pinned,
             "status": self.status.value,
+            "terminate_kind": self.terminate_kind,
             "createdAt": self.created_at,
             "completedAt": self.completed_at,
             "snapshotPath": self.snapshot_path,

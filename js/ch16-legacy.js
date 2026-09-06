@@ -2373,6 +2373,20 @@ function fmtFailReason(r){
   const key = String(r || '').toLowerCase();
   return m[key] || (String(r || '').trim() ? r : '未知原因');
 }
+/* 定稿三：终止类型统一读取（task.terminate_kind 持久化优先，回退 meta 装饰/默认 error），按全书 B4 四终态出标题。
+   三读源（聊天流终态卡 / 执行面板顶部 / 刷新重拉路径）一律走本函数 → 同一次停止三处同文案。 */
+function agentTermKind(task){
+  if (!task) return 'error';
+  if (task.terminate_kind) return task.terminate_kind;
+  if (task.meta && task.meta.terminate_kind) return task.meta.terminate_kind;
+  return 'error';
+}
+function agentFailTitle(task){
+  const tk = agentTermKind(task);
+  if (tk === 'user_interrupt' || tk === 'interrupted') return '任务已被中断';
+  if (tk === 'plan_denied') return '计划未执行';
+  return '任务执行失败';
+}
 /* 片7 #3：API 错误人话化——把后端/底层裸错误码映射为陈述句，不让裸 API 错误上屏 */
 function humanizeApiErr(d, status){
   const s = String((typeof d === 'string' && d.trim()) ? d : '').toLowerCase();
@@ -2513,10 +2527,7 @@ function renderAgentViewIncremental(v, task){
 
   const dur = fmtDur((task.completed_at || 0) - (task.created_at || 0));
   const metaLine = `耗时 ${dur || '—'} · 工具 ${task.tool_call_count || 0} 次`;
-  const tk = task.meta && task.meta.terminate_kind;
-  let failTitle = '任务执行失败';
-  if (tk === 'user_interrupt') failTitle = '任务已被用户中止';
-  else if (tk === 'plan_denied') failTitle = '计划被拒绝';
+  let failTitle = agentFailTitle(task); /* 定稿三：统一读取 terminate_kind → 全书 B4 终态文案（含用户停止） */
   const costLine = done
     ? `本次费用 ${task.estimated_cost != null ? '¥' + task.estimated_cost.toFixed(4) : '未知'} · 耗时 ${dur || '—'} · 工具调用 ${task.tool_call_count || 0} 次`
     : '';
@@ -2676,10 +2687,7 @@ function agentViewRender(task){
     const ok = st === 'completed';
     const dur = fmtDur((task.completed_at || 0) - (task.created_at || 0));
     const meta = `耗时 ${dur || '—'} · 工具 ${task.tool_call_count || 0} 次`;
-    let failTitle = '任务执行失败';
-    const tk = task.meta && task.meta.terminate_kind;
-    if (tk === 'user_interrupt') failTitle = '任务已被用户中止';
-    else if (tk === 'plan_denied') failTitle = '计划被拒绝';
+    let failTitle = agentFailTitle(task); /* 定稿三：统一读取 terminate_kind → 全书 B4 终态文案 */
     doneHtml = ok
       ? `<div class="fmsg-done done"><span class="fmsg-done-ic">✓</span>
           <div class="fmsg-done-bd">
@@ -2906,7 +2914,7 @@ function agentPaneRender(task){
   body.innerHTML = `
     <div class="agent-pane-head">
       <span class="agent-pane-title">${escHtml(task.objective || '')}</span>
-      <span class="agent-pane-status ${running ? 'run pulse' : ''}">${statusLabel(st)}</span>
+      <span class="agent-pane-status ${running ? 'run pulse' : ''}">${st === 'failed' ? agentFailTitle(task) : statusLabel(st)}</span>
     </div>
     <div class="agent-pane-meter">${meter.join('')}</div>
     <div class="agent-pane-stream">${lead}${blocks ? '<div class="pane-turnbar"><button id="paneUnfoldAll" title="展开全部轮次">全部展开</button><button id="paneFoldAll" title="折叠全部轮次">全部折叠</button></div>' + blocks : '<div class="pane-empty">等待执行事件…</div>'}</div>

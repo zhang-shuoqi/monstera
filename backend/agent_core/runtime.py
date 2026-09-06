@@ -97,7 +97,18 @@ class StateProjector:
         reason = "unknown"
         if isinstance(payload, dict):
             reason = payload.get(K_DETAIL) or payload.get(K_REASON) or "unknown"
-        self._store.set_status(task_id, TaskStatus.FAILED, fail_reason=str(reason))
+        # 定稿三：失败写入时刻派生并持久化终止类型（存量/未知默认 "error"），三读源据此统一
+        _r = reason
+        _d = str(payload.get(K_DETAIL, "") if isinstance(payload, dict) else "")
+        if _r == "user_stopped" or "手动停止" in _d or "中断运行" in _d:
+            kind = "user_interrupt"
+        elif _r == "plan_denied" or ("计划" in _d and "拒" in _d):
+            kind = "plan_denied"
+        elif _r == "interrupted":
+            kind = "interrupted"
+        else:
+            kind = "error"
+        self._store.set_status(task_id, TaskStatus.FAILED, fail_reason=str(reason), terminate_kind=kind)
 
     # 事件类型 → 投影处理（显式 dict，替代 getattr 动态派发；未注册类型被 _on_event 跳过）
     _HANDLERS: Dict[EventType, Callable[["StateProjector", str, Any], None]] = {
