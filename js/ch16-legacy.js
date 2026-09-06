@@ -2339,7 +2339,17 @@ function fmtDur(s){
   const m = Math.floor(s / 60), ss = Math.round(s % 60);
   return `${m ? m + '分钟 ' : ''}${ss}秒`;
 }
-function snip(s, n){ s = String(s ?? ''); return s.length > n ? s.slice(0, n) + '…' : s; }
+/* —— P2 统一截断原语：N 字截断 + 省略号 + 悬浮完整。
+   单一策略：普通详情区一律截断不留全量（证据块=片 8 例外）。
+   TRUNC_N=4000 详情/正文；TRUNC_TITLE=60 折叠标题/单行预览。 */
+const TRUNC_N = 4000;
+const TRUNC_TITLE = 60;
+function p2Trunc(s, n){
+  const str = String(s == null ? '' : s);
+  const full = str;
+  const short = str.length > n ? str.slice(0, n) + '…' : str;
+  return { short, full };
+}
 /* —— Codex 式自由消息流：过程消息的摘要标题 + 全文 dump —— */
 function fmsgBasename(p){
   const s = String(p || '').replace(/\\/g, '/');
@@ -2362,11 +2372,12 @@ function fmsgToolLabel(tool, args){
   return `调用 ${tool}`;
 }
 function fmsgDump(data, label){
-  /* 展开后全文 dump，不省略（视觉上限交给 CSS max-height + 滚动，内容完整）；
-     段落头带「复制」ghost 按钮（OpenHands copy 语义，委托见 bindAgentDecision） */
+  /* P2 统一策略：详情区截断(TRUNC_N)+省略号+悬浮完整(title)；原文存 data-full 供「复制」取全文（显示不留全量） */
   const txt = (data === undefined || data === null)
     ? '' : (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-  return `<span class="extra-head"><em>— ${label} —</em><button class="extra-copy" data-copy-extra>复制</button></span>\n${escHtml(txt)}`;
+  const { short, full } = p2Trunc(txt, TRUNC_N);
+  const trunc = full.length > short.length;
+  return `<span class="p2-dump" data-full="${escHtml(full)}"${trunc ? ` title="${escHtml(full)}"` : ''}><span class="extra-head"><em>— ${label} —</em><button class="extra-copy" data-copy-extra>复制</button></span>\n${escHtml(short)}</span>`;
 }
 function fmsgChipHtml(c, live){
   const flag = c.state === 'err' ? '<span class="fmsg-flag">✕</span>'
@@ -2377,15 +2388,16 @@ function fmsgChipHtml(c, live){
   if (c.error != null) detail += fmsgDump(c.error, '错误');
   /* data-ext 必须是独立属性（写在 class 引号外），否则会被吞进 class 值 */
   const ext = detail ? ' data-ext="1"' : '';
-  /* 折叠标题硬截断：单行铁律（OpenHands MAX_LINE_LENGTH 语义） */
-  const title = String(c.title || '').length > 60 ? String(c.title).slice(0, 60) + '…' : String(c.title || '');
+  /* P2 统一：折叠标题单行截断(TRUNC_TITLE)+悬浮完整(title) */
+  const ti = p2Trunc(c.title || '', TRUNC_TITLE);
+  const title = ti.short;
   /* 展开决定：执行中(live)强制展开；否则看「用户手动展开集合」fmsgOpenSteps（片 2 折叠保活，活过 SSE 帧） */
   const userOpen = !live && window.MONSTERA_CH && window.MONSTERA_CH.foldPersist !== false && fmsgOpenSteps.has(c.stepNo);
   const cls = `${c.state || ''}${live ? ' live open' : (userOpen ? ' open' : '')}`.trim();
   return `<div class="fmsg-chip ${cls}"${ext} data-step-no="${c.stepNo}">
     <div class="fmsg-chip-h">
       <span class="fmsg-chev">▸</span>${flag}
-      <span class="fmsg-chip-t">${escHtml(title)}</span>
+      <span class="fmsg-chip-t"${ti.full.length > ti.short.length ? ` title="${escHtml(ti.full)}"` : ''}>${escHtml(title)}</span>
     </div>
     ${detail ? `<div class="fmsg-chip-d">${detail}</div>` : ''}
   </div>`;
@@ -2460,7 +2472,7 @@ function renderAgentViewIncremental(v, task){
     if (c.error != null) detail += fmsgDump(c.error, '错误');
     return {
       stepNo: c.stepNo,
-      title: String(c.title || '').length > 60 ? String(c.title).slice(0, 60) + '…' : String(c.title || ''),
+      title: p2Trunc(c.title || '', TRUNC_TITLE).short,
       cls: `${c.state || ''}${live ? ' live open' : ''}`,
       flag: c.state === 'err' ? '✕' : c.state === 'ok' ? '✓' : '',
       detail,
@@ -2692,17 +2704,18 @@ function paneEventRow(e){
   const p = e.payload || {};
   switch (e.type){
     case 'INTENT_RECEIVED':
-      return paneRowHtml('gold', '◎', '已接收目标', escHtml(snip(p.objective || '', 70)), '', '');
+      return paneRowHtml('gold', '◎', '已接收目标', escHtml(p2Trunc(p.objective || '', 70).short), '', '');
     default:
       return '';
   }
 }
 function paneDetail(data, label){
-  /* 生成完整详情块（供点击展开）；大对象限长截断防卡顿 */
+  /* P2 统一策略：详情区截断(TRUNC_N)+省略号+悬浮完整(title)；原文存 data-full 供「复制」取全文 */
   if (data === undefined || data === null) return '';
   const txt = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-  const body = escHtml(txt.length > 4000 ? txt.slice(0, 4000) + '\n…（过长已截断）' : txt);
-  return `<span class="pane-row-extra"><span class="extra-head"><em>— ${label} —</em><button class="extra-copy" data-copy-extra>复制</button></span>\n${body}</span>`;
+  const { short, full } = p2Trunc(txt, TRUNC_N);
+  const trunc = full.length > short.length;
+  return `<span class="pane-row-extra p2-dump" data-full="${escHtml(full)}"${trunc ? ` title="${escHtml(full)}"` : ''}><span class="extra-head"><em>— ${label} —</em><button class="extra-copy" data-copy-extra>复制</button></span>\n${escHtml(short)}</span>`;
 }
 function paneRowHtml(cls, ic, title, desc, extra, time){
   // Phase 6 UI 极简：行尾不再内联显示时间，改为行悬停提示（减少每行视觉噪声）
@@ -2735,7 +2748,7 @@ function paneSteps(evs, running){
       last.phaseTxt = e.payload.success ? '工具完成' : '工具失败';
       const d = e.payload.data;
       const txt = (typeof d === 'object' ? JSON.stringify(d) : String(d ?? ''));
-      last.rslt = escHtml(snip(txt, 100));
+      last.rslt = escHtml(p2Trunc(txt, 100).short);
       last.extra += paneDetail(e.payload.success ? e.payload.data : { error: e.payload.error || e.payload.data },
         e.payload.success ? '结果' : '错误');
       last.hasDetail = true;
@@ -2745,7 +2758,7 @@ function paneSteps(evs, running){
       steps.push({no:'!', state:'wait', phase:'wait',
         phaseTxt: isPlan ? '计划确认' : '等待确认',
         tool: isPlan ? '' : escHtml(p.tool),
-        rslt: escHtml(snip(p.reason || '', 100)),
+        rslt: escHtml(p2Trunc(p.reason || '', 100).short),
         extra: paneDetail(p, '确认详情'), hasDetail:true});
     }
   });
@@ -2889,9 +2902,12 @@ function bindAgentDecision(){
         const head = cex.closest('.extra-head');
         const box = head && head.parentElement;
         if (!box) return;
-        const clone = box.cloneNode(true);
-        clone.querySelectorAll('.extra-head').forEach(h => h.remove());
-        navigator.clipboard.writeText((clone.textContent || '').trim()).then(
+        // P2 统一：详情块带 data-full（原文）时优先复制全文，否则退回复制渲染文本（避免截断后丢失原文）
+        const full = box.getAttribute('data-full');
+        let text;
+        if (full != null) text = full;
+        else { const clone = box.cloneNode(true); clone.querySelectorAll('.extra-head').forEach(h => h.remove()); text = (clone.textContent || '').trim(); }
+        navigator.clipboard.writeText(text).then(
           () => toast('已复制'), () => toast('复制失败，请手动复制'));
         return;
       }
