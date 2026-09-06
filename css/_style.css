@@ -1875,3 +1875,18 @@
 
 /* — Alpine x-cloak 防闪屏（片3 3-B 铺位）：初始化前隐藏未初始化 DOM，防 FOUC — */
 [x-cloak]{display:none!important}
+
+/* —— 片8 C3 证据块（区域 C 证物袋）：11px 人话 + 图标 + 右侧状态点；详情区底 rgba(0,0,0,.32) —— */
+.pane-evidence{margin:2px 0 1px;padding-left:4px}
+.ev-row{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:6px;cursor:pointer;user-select:none;transition:background .12s;font-size:11px;color:rgba(233,232,239,.62)}
+.ev-row:hover{background:rgba(233,232,239,.04)}
+.ev-chev{font-size:8px;color:rgba(233,232,239,.4);flex:none;width:9px}
+.ev-ic{flex:none;width:10px;font-size:10px;color:rgba(233,232,239,.4)}
+.ev-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-status{flex:none;font-size:10px;font-weight:700}
+.ev-status.ok{color:rgba(107,203,119,.8)}
+.ev-status.err{color:rgba(231,111,81,.85)}
+.ev-detail-wrap{display:none;margin:1px 0 2px 21px;padding:7px 9px;border-radius:6px;background:rgba(0,0,0,.32);font-family:var(--font-mono);font-size:10.5px;color:rgba(233,232,239,.68);max-height:52vh;overflow:auto;white-space:pre-wrap}
+.ev-row.open ~ .ev-detail-wrap{display:block}
+/* 片8 C4 定位动效：目标一档背景差闪烁一次 .3s（全书唯一引导性动效，非循环） */
+.locate{background:rgba(233,232,239,.07)}

@@ -539,6 +539,8 @@ bindScrollRegion(messagesEl, scrollDownBtn);
 window.MONSTERA_CH = window.MONSTERA_CH || {};
 window.MONSTERA_CH.agentScroll = true;
 window.MONSTERA_CH.foldPersist = true;   // 片 2：过程 chip 展开态保活（活过 SSE 帧重建）
+window.MONSTERA_CH.evidenceBlocks = false; // 片 8：C3 证物袋（默认休眠，验收通过前不切默认）
+window.MONSTERA_CH.mutualLocate   = false; // 片 8：I1/I2 互定位（默认休眠，验收通过前不切默认）
 /* 用户手动展开的过程步骤序号集合（P1 dataset 模式：stepNo 为稳定键，帧间不变）。
    agentViewRender 重建前捕获 .fmsg-chip.open 的 stepNo 写入；重建后 fmsgChipHtml 据此恢复。
    live 步强制展开，不写入集合；已结束步才参与持久化。 */
@@ -2758,6 +2760,38 @@ function paneRowHtml(cls, ic, title, desc, extra, time){
   </div>`;
 }
 /* 右侧面板·交互重构：把扁平事件流按「步骤」分组为追踪块（阶段词 chip + 工具 + 徽章 + 展开） */
+/* 片8 C3 证据块：每轮(步)从 TOOL_RESULT_RECEIVED 真实字段渲染证据行（文件证据为主，结论/命令数据门控）。
+   P1 折叠保活：paneEvOpenSteps 键 stepNo 持久化，pane 每帧重建不丢展开态。
+   P2 截断：详情走 paneDetail；file_edit/file_write 无 diff 字段 → 按红线1只渲染真实 summary/字节，不伪造 diff。 */
+const paneEvOpenSteps = new Set();
+function paneEvToggle(stepNo, open){ if (open) paneEvOpenSteps.add(stepNo); else paneEvOpenSteps.delete(stepNo); }
+function buildEvidence(s){
+  if (!(window.MONSTERA_CH && window.MONSTERA_CH.evidenceBlocks)) return '';
+  const tool = s.evTool; if (!tool) return '';
+  const succ = !!s.evSucc;
+  const d = (s.evData && typeof s.evData === 'object') ? s.evData : {};
+  const fn = fmsgBasename(d.path);
+  const open = paneEvOpenSteps.has(s.no);
+  const label = fn ? fmsgToolLabel(tool, { path: d.path }) : fmtToolBase(tool);
+  const stDot = succ ? '<span class="ev-status ok">✓</span>' : '<span class="ev-status err">✗</span>';
+  const isFile = /^file_|^list_dir/.test(tool);
+  let detail = '';
+  if (tool === 'file_read') detail = paneDetail(d.content, '内容');
+  else if (tool === 'file_write') detail = `<div class="ev-detail">${escHtml(d.mode === 'created' ? '新建文件' : '覆盖已有文件')} · ${d.bytes ?? ''} 字节</div>`;
+  else if (tool === 'file_edit') detail = `<div class="ev-detail">${escHtml(d.summary || '已修改')} · ${d.bytes ?? ''} 字节</div>`;
+  else if (tool === 'list_dir'){ const names = (d.entries || []).slice(0, 60).map(x => x.name).join(' · '); detail = `<div class="ev-detail">${d.count ?? 0} 项：${escHtml(names)}</div>`; }
+  else if (d.summary) detail = `<div class="ev-detail">${escHtml(d.summary)}</div>`;
+  else if (!succ) detail = `<div class="ev-detail">失败：${escHtml(String(s.evError || ''))}</div>`;
+  else detail = paneDetail(d, '结果');
+  return `<div class="pane-evidence">
+    <div class="ev-row${open ? ' open' : ''}" data-ev data-step="${s.no}" title="${escHtml(label)}">
+      <span class="ev-chev">${open ? '▾' : '▸'}</span>
+      <span class="ev-ic">${isFile ? '◇' : '·'}</span>
+      <span class="ev-label">${escHtml(label)}</span>${stDot}
+    </div>
+    <div class="ev-detail-wrap">${detail}</div>
+  </div>`;
+}
 function paneSteps(evs, running){
   const steps = [];
   let stepNo = 0;
@@ -2767,7 +2801,7 @@ function paneSteps(evs, running){
     }
     else if (e.type === 'TOOL_CALL_REQUESTED' && steps.length){
       const last = steps[steps.length - 1];
-      last.phase = 'tool'; last.phaseTxt = '调用工具'; last.tool = escHtml(e.payload.tool);
+      last.phase = 'tool'; last.phaseTxt = '调用工具'; last.tool = escHtml(e.payload.tool); last.toolRaw = e.payload.tool;
       last.extra += paneDetail(e.payload.args, '参数'); last.hasDetail = true;
     }
     else if (e.type === 'TOOL_RESULT_RECEIVED' && steps.length){
@@ -2781,6 +2815,9 @@ function paneSteps(evs, running){
       last.extra += paneDetail(e.payload.success ? e.payload.data : { error: e.payload.error || e.payload.data },
         e.payload.success ? '结果' : '错误');
       last.hasDetail = true;
+      /* 片8 C3：记录真实结果字段供证据块渲染（不伪造 diff） */
+      last.evTool = e.payload.tool || last.toolRaw; last.evSucc = !!e.payload.success;
+      last.evData = e.payload.data; last.evError = e.payload.error;
     }
     else if (e.type === 'HUMAN_INTERVENTION_REQUIRED'){
       const p = e.payload; const isPlan = p.level === 'plan_confirm';
@@ -2820,7 +2857,7 @@ function paneSteps(evs, running){
         <span class="pane-turn-prev">${prevTxt}</span>
         ${running && i === runIdx ? '<span class="pane-turn-phase">执行中</span>' : ''}
       </div>
-      <div class="pane-turn-body">${inner}</div>
+      <div class="pane-turn-body">${inner}${(window.MONSTERA_CH && window.MONSTERA_CH.evidenceBlocks) ? buildEvidence(s) : ''}</div>
     </div>`;
   }).join('');
 }
@@ -2897,6 +2934,26 @@ function agentPaneRender(task){
     }
   }
 }
+/* 片8 I1/I2 互定位（门控 mutualLocate）：目标入视口居中 + 一档背景差闪烁一次 .3s（全书唯一引导性动效）。
+   定位=用户显式新意图：用 scrollIntoView（不经 maybeAutoScroll），故 P4 滚动锁 up 保持不变，后续 SSE 帧不拉回。 */
+function locateFlash(el){
+  if (!el) return;
+  el.scrollIntoView({ block: 'center', behavior: 'auto' });
+  el.classList.add('locate');
+  setTimeout(() => el.classList.remove('locate'), 300);
+}
+function locateChatToTurn(no){
+  if (!(window.MONSTERA_CH && window.MONSTERA_CH.mutualLocate)) return;
+  if (no == null) return;
+  const chip = document.querySelector(`#taskView .fmsg-chip[data-step-no="${no}"]`);
+  if (chip) locateFlash(chip);
+}
+function locatePaneToTurn(no){
+  if (!(window.MONSTERA_CH && window.MONSTERA_CH.mutualLocate)) return;
+  if (no == null) return;
+  const turn = document.querySelector(`#agentBody .pane-turn[data-turn="${no}"]`);
+  if (turn) locateFlash(turn);
+}
 /* 确认/拒绝/横幅操作/重试：委托到任务视图与右侧面板 */
 function bindAgentDecision(){
   const v = $('taskView'), body = $('agentBody');
@@ -2913,6 +2970,21 @@ function bindAgentDecision(){
       const turnHead = e.target.closest('.pane-turn-head');
       if (turnHead){
         turnHead.parentElement.classList.toggle('exp');
+        // 片8 I2：C→B 定位——点轮次头定位聊天流对应消息（门控 mutualLocate；scrollIntoView 不重置 P4 滚动锁）
+        if (window.MONSTERA_CH && window.MONSTERA_CH.mutualLocate){
+          const turnNo = parseInt(turnHead.parentElement.dataset.turn, 10);
+          if (Number.isInteger(turnNo)) locateChatToTurn(turnNo);
+        }
+        return;
+      }
+      // 片8 C3：证据行折叠切换（P1 保活，键 stepNo 持久化，pane 每帧重建不丢展开态）
+      const evRow = e.target.closest('.ev-row[data-ev]');
+      if (evRow){
+        const willOpen = !evRow.classList.contains('open');
+        evRow.classList.toggle('open', willOpen);
+        const stepNo = parseInt(evRow.dataset.step, 10);
+        if (Number.isInteger(stepNo)) paneEvToggle(stepNo, willOpen);
+        const chev = evRow.querySelector('.ev-chev'); if (chev) chev.textContent = willOpen ? '▾' : '▸';
         return;
       }
       if (e.target.closest('#paneUnfoldAll')){
@@ -2950,6 +3022,11 @@ function bindAgentDecision(){
           if (Number.isInteger(n)){
             if (willOpen) fmsgOpenSteps.add(n); else fmsgOpenSteps.delete(n);
           }
+        }
+        // 片8 I1：B→C 定位——点聊天 chip 定位执行面板对应轮次（门控 mutualLocate；不重置 P4 滚动锁）
+        if (window.MONSTERA_CH && window.MONSTERA_CH.mutualLocate){
+          const step = parseInt(chip.dataset.stepNo, 10);
+          if (Number.isInteger(step)) locatePaneToTurn(step);
         }
         return;
       }
