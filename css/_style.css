@@ -525,6 +525,8 @@
     color:var(--gold);font-size:11.5px;
   }
   .fmsg-live::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none}  /* 片6 静默航标：执行中稳定点，不闪 */
+  .fmsg-live.down{color:rgba(233,232,239,.34);border-color:rgba(233,232,239,.15);background:rgba(233,232,239,.03)}  /* 片9 B5：SSE 断线灰字「连接中断，正在重连」 */
+  .fmsg-live.down::before{background:var(--gray)}
   .fmsg-row{display:flex;align-items:flex-start;gap:11px}
   .fmsg-row.user{justify-content:flex-end}
   .fmsg-av{

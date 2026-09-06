@@ -140,7 +140,7 @@ async function apiFetch(path, method = 'GET', body = null){
     if (e.name === 'AbortError'){
       throw new Error('后端无响应（超时 15 秒），请检查服务是否正常运行');
     }
-    throw new Error('无法连接后端服务，请先启动 backend');
+    throw new Error('无法连接后端，请检查服务');
   }finally{
     clearTimeout(timer);
   }
@@ -838,7 +838,7 @@ async function sendMessage(payload){
       }
       bubble.classList.remove('cursor-blink');
       if (streamErr){ fail(streamErr); return; }
-      if (!meta){ fail('连接中断，请重试'); return; }
+      if (!meta){ fail('连接中断，正在重连'); return; }
       setAiContent(bubble, acc); // 收尾：确保最终全文渲染（覆盖节流残帧）
       if (!state.activeConv) state.activeConv = meta.conversation_id;
       wrap.appendChild(buildMsgMeta(wrap, opt.label, meta.price_known === false ? null : meta.cost, meta.latency_ms, acc));
@@ -887,7 +887,7 @@ function showFailRetry(userBubble, text, images, msg){
   const tag = document.createElement('div');
   tag.className = 'msg-fail-tag';
   const label = document.createElement('span');
-  label.textContent = '发送失败：' + msg;
+  label.textContent = '发送失败';
   const retry = document.createElement('button');
   retry.className = 'msg-retry-btn';
   retry.textContent = '重试';
@@ -1040,9 +1040,12 @@ $('sendBtn').addEventListener('click', () => sendMessage());
 /* "停止生成/停止任务"：Agent 执行期间按钮切换为停止任务（与聊天模式交互一致） */
 $('stopBtn').addEventListener('click', () => {
   if (appEl.classList.contains('mode-agent') && A && A.running && A.activeTaskId){
-    apiFetch(`/agent/tasks/${A.activeTaskId}/stop`, 'POST').then(
-      () => toast('已发送停止指令'),
-      () => toast('停止失败，请稍后再试'));
+    showConfirm('停止后证据保留，可从中断处重试', '停止任务', '确认停止').then(ok => {
+      if (!ok) return;
+      apiFetch(`/agent/tasks/${A.activeTaskId}/stop`, 'POST').then(
+        () => toast('已发送停止指令'),
+        () => toast('停止失败，请稍后再试'));
+    });
     return;
   }
   if (!sending || !sendAbort) return;
@@ -1230,7 +1233,7 @@ function regenTurn(wrap){
 async function handleMsgDelete(el, msgId){
   if (sending){ toast('请等待当前回复完成后再删除'); return; }
   if (!state.activeConv){ toast('暂无法删除'); return; }
-  const ok = await showConfirm('删除这条消息？该操作不可恢复。', '删除消息', '删除');
+  const ok = await showConfirm('删除后不可恢复', '删除消息', '删除');
   if (!ok) return;
   try{
     await apiFetch(`/conversations/${state.activeConv}/messages/${msgId}`, 'DELETE');
@@ -2292,6 +2295,8 @@ function streamTask(taskId, runP){
       let snap;
       try{ snap = JSON.parse(ev.data); }catch(_){ return; }
       gotFrame = true;
+      agentSseDown = false;                 // 帧到达：连接恢复，live 条还原正常动作
+      agentLastSnap = snap;
       renderTaskSnap(snap);
       const st = snap.status;
       if (st === 'completed' || st === 'failed'){
@@ -2305,8 +2310,11 @@ function streamTask(taskId, runP){
         es.close();
         A.es = null;
         fallbackPoll(taskId, finish);
+      }else{
+        // 已连上过：交给 EventSource 自动重连；期间 live 条显示「连接中断，正在重连」
+        agentSseDown = true;
+        if (agentLastSnap) renderTaskSnap(agentLastSnap);
       }
-      // 已连上过：交给 EventSource 自动重连，终态帧最终会到达
     };
   });
 }
@@ -2396,7 +2404,7 @@ function humanizeApiErr(d, status){
   if (/(429|rate.?limit|too many|削峰)/.test(s) || s.indexOf('频繁') >= 0 || s.indexOf('限流') >= 0) return '请求过于频繁，请稍后重试';
   if (/404|not found|invalid.?model|unsupported|不存在/.test(s) || s.indexOf('无效的模型') >= 0) return '模型不可用，请检查模型配置';
   if (/(timeout|超时)/.test(s)) return '请求超时，请稍后重试';
-  if (/无法连接|no response|unreachable/.test(s) || s.indexOf('未响应') >= 0) return '无法连接后端服务';
+  if (/无法连接|no response|unreachable/.test(s) || s.indexOf('未响应') >= 0) return '无法连接后端，请检查服务';
   /* 兜底：后端已写人话的（含中文）直接透传；纯英文/内部码一律只陈述状态码，不吐裸 detail 上屏 */
   const hasCjk = /[\u4e00-\u9fff]/.test(String(d || ''));
   return (typeof d === 'string' && d.trim() && hasCjk) ? d : `请求失败（${status || ''}）`;
@@ -2544,7 +2552,7 @@ function renderAgentViewIncremental(v, task){
     const data = window.Alpine.reactive({
       state: st, running, done, ok,
       userText: task.objective || '',
-      liveLabel: running ? (agentLiveLabel(task.events || []) || '执行中…') : '',
+      liveLabel: running ? liveLabelOf(task.events || []) : '',
       chips,
       metaLine, costLine, failTitle, failReason: fmtFailReason(task.fail_reason),
     });
@@ -2587,7 +2595,7 @@ function renderAgentViewIncremental(v, task){
     const d = cur.data;
     d.state = st; d.running = running; d.done = done; d.ok = ok;
     d.userText = task.objective || '';
-    d.liveLabel = running ? (agentLiveLabel(task.events || []) || '执行中…') : '';
+    d.liveLabel = running ? liveLabelOf(task.events || []) : '';
     d.chips = chips;
     d.metaLine = metaLine; d.costLine = costLine; d.failTitle = failTitle;
     d.failReason = fmtFailReason(task.fail_reason);
@@ -2607,6 +2615,21 @@ function renderAgentViewIncremental(v, task){
     requestAnimationFrame(() => { v.scrollTop = v.scrollHeight; });
   }
 }
+/* —— 片9 权限确认「总是」：localStorage 记忆该工具的决定，下次自动放行并在面板留一行记录（纯前端）—— */
+const ALWAYS_ALLOW_KEY = 'monstera_always_allow';
+const S9_AUTO_POSTED = new Set();      // `${taskId}:${tool}` 只自动放行一次（防 SSE 重渲染重复 POST）
+const ALWAYS_ALLOW_LOG = [];           // {taskId, tool, label, ts} 放行记录（纯前端，供面板追加一行）
+let paneLastTask = null;               // 供「总是」放行后刷新右侧面板
+function alwaysAllowGet(){ try{ return JSON.parse(localStorage.getItem(ALWAYS_ALLOW_KEY)||'{}')||{}; }catch(_){ return {}; } }
+function alwaysAllowHas(tool){ return !!(tool && alwaysAllowGet()[tool]); }
+function alwaysAllowSet(tool){ if(!tool) return; const m=alwaysAllowGet(); m[tool]=1; try{ localStorage.setItem(ALWAYS_ALLOW_KEY, JSON.stringify(m)); }catch(_){} }
+function alwaysAllowLog(taskId, tool, label){ ALWAYS_ALLOW_LOG.push({ taskId, tool, label, ts: Date.now() }); paneLastTask = paneLastTask || {}; if (paneLastTask.task_id){ agentPaneRender(paneLastTask); } }
+function paneAllowLogRows(taskId){ const rows = ALWAYS_ALLOW_LOG.filter(r => r.taskId === taskId); if (!rows.length) return ''; return rows.map(r => `<div class="pane-allowlog">已放行 ${escHtml(r.label || r.tool)}（记忆）</div>`).join(''); }
+/* —— 片9 item7：live 条 SSE 断线 → 灰字「连接中断，正在重连」；帧恢复即还原 —— */
+let agentSseDown = false;
+let agentLastSnap = null;
+function liveLabelOf(evs){ return agentSseDown ? '连接中断，正在重连' : (agentLiveLabel(evs) || '执行中…'); }
+
 function agentViewRender(task){
   const v = $('taskView');
   if (!task) return;
@@ -2641,14 +2664,29 @@ function agentViewRender(task){
   if (st === 'waiting_human' && human){
     const p = human.payload;
     const isPlan = p.level === 'plan_confirm';
-    confirm = `<div class="agent-confirm" id="agentConfirm">
-      <div class="agent-confirm-t">${isPlan ? '📋 计划确认' : '⚠ 危险操作 · 等待你确认'}</div>
-      <div class="agent-confirm-d">${isPlan ? escHtml(p.reason) : `工具：<b>${escHtml(fmtToolBase(p.tool))}</b><br>${escHtml(p.reason)}`}</div>
-      <div class="agent-confirm-btns">
-        <button class="agent-btn allow" data-act="allow">${isPlan ? '开始执行' : '允许'}</button>
-        <button class="agent-btn deny" data-act="deny">${isPlan ? '取消' : '拒绝'}</button>
-      </div>
-    </div>`;
+    const toolLabel = isPlan ? '' : (fmsgToolLabel(p.tool, p.args || {}) || fmtToolBase(p.tool));
+    const memorized = !isPlan && alwaysAllowHas(p.tool);
+    if (memorized && A.activeTaskId && !S9_AUTO_POSTED.has(A.activeTaskId + ':' + p.tool)){
+      S9_AUTO_POSTED.add(A.activeTaskId + ':' + p.tool);
+      const tId = A.activeTaskId;
+      apiFetch(`/agent/tasks/${tId}/decision`, 'POST', { allow: true, reason: '用户在 UI 上允许该操作（记忆）' })
+        .then(() => { alwaysAllowLog(tId, p.tool, toolLabel); A.confirmLock = null; })
+        .catch(() => {});
+      confirm = `<div class="agent-confirm" id="agentConfirm" data-auto="1">
+        <div class="agent-confirm-t">危险操作 · 已按记忆放行</div>
+        <div class="agent-confirm-d">将执行：<b>${escHtml(toolLabel)}</b><br>已记住该工具，本次自动放行</div>
+      </div>`;
+    } else {
+      confirm = `<div class="agent-confirm" id="agentConfirm" data-tool="${isPlan ? '' : escHtml(p.tool)}">
+        <div class="agent-confirm-t">${isPlan ? '计划确认' : '危险操作 · 等待你确认'}</div>
+        <div class="agent-confirm-d">${isPlan ? escHtml(p.reason) : `将执行：<b>${escHtml(toolLabel)}</b>${p.reason ? `<br>${escHtml(p.reason)}` : ''}`}</div>
+        <div class="agent-confirm-btns">
+          ${isPlan
+            ? `<button class="agent-btn allow" data-act="allow">开始执行</button><button class="agent-btn deny" data-act="deny">取消</button>`
+            : `<button class="agent-btn allow" data-act="allow">允许一次</button><button class="agent-btn always" data-act="always" data-tool="${escHtml(p.tool)}" data-label="${escHtml(toolLabel)}">总是</button><button class="agent-btn deny" data-act="deny">拒绝</button>`}
+        </div>
+      </div>`;
+    }
   }
 
   /* —— 过程消息链（小字号淡字）：步骤级判定：
@@ -2712,7 +2750,7 @@ function agentViewRender(task){
 
   /* —— 运行中：消息流顶部 sticky「当前动作」（OpenHands/Codex live chip 语义）—— */
   let liveHtml = '';
-  if (running) liveHtml = `<div class="fmsg-live">${agentLiveLabel(evs) || '执行中…'}</div>`;
+  if (running) liveHtml = `<div class="fmsg-live${agentSseDown ? ' down' : ''}">${liveLabelOf(evs) || '执行中…'}</div>`;
 
   v.innerHTML = `<div class="fmsg">
     ${liveHtml}
@@ -2876,13 +2914,15 @@ function agentLiveLabel(evs){
   const chips = buildFmsgChips(evs || []);
   for (let i = chips.length - 1; i >= 0; i--){
     const s = chips[i];
-    if (s.hasCall && !s.hasResult) return `正在 ${s.title}`;
+    if (s.hasCall && !s.hasResult) return `正在执行 · 第 ${s.stepNo} 轮 · ${s.title}`;
   }
   return '';
 }
 function agentPaneRender(task){
   const body = $('agentBody');
   if (!task) return;
+  paneLastTask = task;
+  const logs = paneAllowLogRows(task.task_id || '');
   const st = task.status || 'idle';
   const evs = task.events || [];
   const done = st === 'completed' || st === 'failed';
@@ -2918,6 +2958,7 @@ function agentPaneRender(task){
     </div>
     <div class="agent-pane-meter">${meter.join('')}</div>
     <div class="agent-pane-stream">${lead}${blocks ? '<div class="pane-turnbar"><button id="paneUnfoldAll" title="展开全部轮次">全部展开</button><button id="paneFoldAll" title="折叠全部轮次">全部折叠</button></div>' + blocks : '<div class="pane-empty">等待执行事件…</div>'}</div>
+    ${logs}
     ${footer}`;
   const stream = body.querySelector('.agent-pane-stream');
   if (stream){
@@ -3043,11 +3084,15 @@ function bindAgentDecision(){
         const act = btn.dataset.act;
         if (A.activeTaskId){
           btn.disabled = true;
+          const tool = btn.dataset.tool || '';
+          const label = btn.dataset.label || '';
+          if (act === 'always') alwaysAllowSet(tool);
           apiFetch(`/agent/tasks/${A.activeTaskId}/decision`, 'POST', {
-            allow: act === 'allow',
-            reason: act === 'deny' ? '用户在 UI 上拒绝了该操作' : '',
+            allow: act === 'allow' || act === 'always',
+            reason: act === 'deny' ? '用户在 UI 上拒绝了该操作' : '用户在 UI 上允许该操作',
           }).then(() => {
-            toast(act === 'allow' ? '已允许，继续执行' : '已拒绝，Agent 将重新决策');
+            if (act === 'always') alwaysAllowLog(A.activeTaskId, tool, label);
+            toast(act === 'allow' ? '已允许，继续执行' : act === 'always' ? '已记住，下次自动放行' : '已拒绝，Agent 将重新决策');
             A.confirmLock = null;
           }).catch(err => { toast('确认失败：' + err.message); btn.disabled = false; });
         }
