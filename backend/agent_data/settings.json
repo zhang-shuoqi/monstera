@@ -1,7 +1,0 @@
-{
-  "max_iterations": 50,
-  "max_tool_calls": 30,
-  "step_timeout_s": 60.0,
-  "plan_confirm": false,
-  "auto_allow_overwrite": false
-}
