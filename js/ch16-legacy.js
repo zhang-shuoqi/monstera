@@ -778,7 +778,7 @@ async function sendMessage(payload){
     if (!inputDirtyDuringSend) inputEl.value = text; // 未改动才找回原文；已改动则保留用户新输入
     autoResize();
     // 消息未落库：保留用户气泡，下方追加"发送失败 + 重试"一键重发，无需重新输入
-    showFailRetry(userBubble, text, images, msg);
+    showFailRetry(userBubble, text, images);
   };
   try{
     // 流式接口：逐块渲染（SSE）；失败/中断时后端不落库任何消息，前端同步移除气泡
@@ -882,7 +882,7 @@ async function sendMessage(payload){
   }
 }
 /* 失败重试：保留用户气泡，在下方追加内联失败提示 + 重试按钮（一键重发，无需重新输入） */
-function showFailRetry(userBubble, text, images, msg){
+function showFailRetry(userBubble, text, images){
   if (!userBubble) return;
   const tag = document.createElement('div');
   tag.className = 'msg-fail-tag';
