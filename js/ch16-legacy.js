@@ -252,7 +252,7 @@ async function loadConvs(){
     const data = await apiFetch('/conversations');
     state.convs = data.conversations || [];
     renderConvs();
-  }catch(err){ toast('加载对话列表失败：' + err.message); }
+  }catch(err){ toast('加载对话列表失败：' + err.message); $('convList').innerHTML = `<div class="empty-api" style="padding:12px 8px">加载失败 <button class="msg-retry-btn" onclick="loadConvs()">重试</button></div>`; }
 }
 
 function renderConvs(){
