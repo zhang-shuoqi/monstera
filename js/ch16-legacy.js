@@ -2926,7 +2926,8 @@ function agentLiveLabel(evs){
   const chips = buildFmsgChips(evs || []);
   for (let i = chips.length - 1; i >= 0; i--){
     const s = chips[i];
-    if (s.hasCall && !s.hasResult) return `正在执行 · 第 ${s.stepNo} 轮 · ${s.title}`;
+    /* 取最近一次工具动作（含已完成的）：执行期无空隙，逐轮推进（真机回归修复） */
+    if (s.hasCall) return `正在执行 · 第 ${s.stepNo} 轮 · ${s.title}`;
   }
   return '';
 }
