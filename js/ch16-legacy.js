@@ -2617,12 +2617,16 @@ function renderAgentViewIncremental(v, task){
 }
 /* —— 片9 权限确认「总是」：localStorage 记忆该工具的决定，下次自动放行并在面板留一行记录（纯前端）—— */
 const ALWAYS_ALLOW_KEY = 'monstera_always_allow';
+/* —— slice-sec2 权限分级：片9 always-allow「总是」仅对低风险只读工具开放 ——
+   写删类（file_write/file_edit 等）无论是否曾记忆，一律每次必审、不再供「总是」按钮。 */
+const SEC_LOW_RISK_TOOLS = new Set(['file_read', 'list_dir']);
+function isLowRiskTool(tool){ return !!tool && SEC_LOW_RISK_TOOLS.has(tool); }
 const S9_AUTO_POSTED = new Set();      // `${taskId}:${tool}` 只自动放行一次（防 SSE 重渲染重复 POST）
 const ALWAYS_ALLOW_LOG = [];           // {taskId, tool, label, ts} 放行记录（纯前端，供面板追加一行）
 let paneLastTask = null;               // 供「总是」放行后刷新右侧面板
 function alwaysAllowGet(){ try{ return JSON.parse(localStorage.getItem(ALWAYS_ALLOW_KEY)||'{}')||{}; }catch(_){ return {}; } }
 function alwaysAllowHas(tool){ return !!(tool && alwaysAllowGet()[tool]); }
-function alwaysAllowSet(tool){ if(!tool) return; const m=alwaysAllowGet(); m[tool]=1; try{ localStorage.setItem(ALWAYS_ALLOW_KEY, JSON.stringify(m)); }catch(_){} }
+function alwaysAllowSet(tool){ if(!tool || !isLowRiskTool(tool)) return; const m=alwaysAllowGet(); m[tool]=1; try{ localStorage.setItem(ALWAYS_ALLOW_KEY, JSON.stringify(m)); }catch(_){} }
 function alwaysAllowLog(taskId, tool, label){ ALWAYS_ALLOW_LOG.push({ taskId, tool, label, ts: Date.now() }); paneLastTask = paneLastTask || {}; if (paneLastTask.task_id){ agentPaneRender(paneLastTask); } }
 function paneAllowLogRows(taskId){ const rows = ALWAYS_ALLOW_LOG.filter(r => r.taskId === taskId); if (!rows.length) return ''; return rows.map(r => `<div class="pane-allowlog">已放行 ${escHtml(r.label || r.tool)}（记忆）</div>`).join(''); }
 /* —— 片9 item7：live 条 SSE 断线 → 灰字「连接中断，正在重连」；帧恢复即还原 —— */
@@ -2665,7 +2669,7 @@ function agentViewRender(task){
     const p = human.payload;
     const isPlan = p.level === 'plan_confirm';
     const toolLabel = isPlan ? '' : (fmsgToolLabel(p.tool, p.args || {}) || fmtToolBase(p.tool));
-    const memorized = !isPlan && alwaysAllowHas(p.tool);
+    const memorized = !isPlan && isLowRiskTool(p.tool) && alwaysAllowHas(p.tool);
     if (memorized && A.activeTaskId && !S9_AUTO_POSTED.has(A.activeTaskId + ':' + p.tool)){
       S9_AUTO_POSTED.add(A.activeTaskId + ':' + p.tool);
       const tId = A.activeTaskId;
@@ -2683,7 +2687,7 @@ function agentViewRender(task){
         <div class="agent-confirm-btns">
           ${isPlan
             ? `<button class="agent-btn allow" data-act="allow">开始执行</button><button class="agent-btn deny" data-act="deny">取消</button>`
-            : `<button class="agent-btn allow" data-act="allow">允许一次</button><button class="agent-btn always" data-act="always" data-tool="${escHtml(p.tool)}" data-label="${escHtml(toolLabel)}">总是</button><button class="agent-btn deny" data-act="deny">拒绝</button>`}
+            : `<button class="agent-btn allow" data-act="allow">允许一次</button>${isLowRiskTool(p.tool) ? `<button class="agent-btn always" data-act="always" data-tool="${escHtml(p.tool)}" data-label="${escHtml(toolLabel)}">总是</button>` : ''}<button class="agent-btn deny" data-act="deny">拒绝</button>`}
         </div>
       </div>`;
     }
