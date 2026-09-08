@@ -2439,6 +2439,12 @@ function fmsgChipHtml(c, live){
   if (c.args != null) detail += fmsgDump(c.args, '参数');
   if (c.result != null) detail += fmsgDump(c.result, '结果');
   if (c.error != null) detail += fmsgDump(c.error, '错误');
+  /* —— 片11-任务2：人话摘要层——展开详情先给一句「动词+对象+结果」，再放原始 dump。
+     红线：diff 渲染不进 chip（C3 专属）；本行只做状态人话，不拼原文。 —— */
+  const living = live || (c.hasCall && !c.hasResult);
+  const sumTxt = c.title ? `${c.title}${c.state === 'ok' ? ' · 成功' : c.state === 'err' ? ' · 失败' : (living ? ' · 进行中' : '')}` : '';
+  const summary = sumTxt ? `<div class="fmsg-chip-sum">${escHtml(sumTxt)}</div>` : '';
+  detail = summary + detail;
   /* data-ext 必须是独立属性（写在 class 引号外），否则会被吞进 class 值 */
   const ext = detail ? ' data-ext="1"' : '';
   /* P2 统一：折叠标题单行截断(TRUNC_TITLE)+悬浮完整(title) */
@@ -2602,7 +2608,9 @@ function renderAgentViewIncremental(v, task){
   }
   /* 流式正文：textContent 追加，不碰 Alpine */
   if (ok){
-    const m = (cur || window.MonsteraInkState).root.querySelector('#incTvText');
+    const src = cur || window.MonsteraInkState;
+    if (!src) return;                     /* 片11-任务5：SEED 被判空后防 .root 空指针 */
+    const m = src.root.querySelector('#incTvText');
     if (m && task.final_answer != null) m.textContent = String(task.final_answer);
   }
   /* 片 1 P4：中间时间线滚动主权不回归 */
@@ -2851,7 +2859,7 @@ function paneSteps(evs, running){
     }
     else if (e.type === 'TOOL_CALL_REQUESTED' && steps.length){
       const last = steps[steps.length - 1];
-      last.phase = 'tool'; last.phaseTxt = '调用工具'; last.tool = escHtml(e.payload.tool); last.toolRaw = e.payload.tool;
+      last.phase = 'tool'; last.phaseTxt = '调用工具'; last.tool = escHtml(e.payload.tool); last.toolRaw = e.payload.tool; last.rawArgs = e.payload.args;
       last.extra += paneDetail(e.payload.args, '参数'); last.hasDetail = true;
     }
     else if (e.type === 'TOOL_RESULT_RECEIVED' && steps.length){
@@ -2891,7 +2899,7 @@ function paneSteps(evs, running){
     else if (s.phase === 'tool') label = `调用工具 <em>${s.tool}</em>`;
     else if (s.state === 'wait') label = s.phaseTxt;
     else label = '思考中…';
-    const prevTxt = s.tool ? `→ ${s.tool}${s.rslt ? ' · ' + s.rslt : ''}` : s.phaseTxt;
+    const prevTxt = s.tool ? `→ ${fmsgToolLabel(s.toolRaw || s.tool, s.rawArgs || {}) || fmtToolBase(s.toolRaw || s.tool)}${s.rslt ? ' · ' + s.rslt : ''}` : s.phaseTxt;
     const inner = `<div class="pane-row ${cls}${s.hasDetail ? ' data-ext="1"' : ''}${i === runIdx ? ' live' : ''}">
       <span class="pane-ic ${cls}">${gly}</span>
       <span class="pane-row-body">
@@ -2939,7 +2947,7 @@ function agentPaneRender(task){
   meter.push(`步数 ${task.loop_iterations || 0}`);
   meter.push(`工具 ${task.tool_call_count || 0}`);
   meter.push(`耗时 ${dur || '—'}`);
-  if (mu.prompt_tokens) meter.push(`tokens ${fmtToken(mu.prompt_tokens)}/${fmtToken(mu.completion_tokens || 0)}`);
+  if (mu.prompt_tokens) meter.push(`tokens 输入${fmtToken(mu.prompt_tokens)}/输出${fmtToken(mu.completion_tokens || 0)}`);
   if (task.estimated_cost != null) meter.push(`费用 ¥${task.estimated_cost.toFixed(4)}`);
 
   const intent = evs.find(e => e.type === 'INTENT_RECEIVED');

@@ -516,7 +516,7 @@
   }
 
   /* ============ 中间区：Codex 式自由消息流（无气泡/卡片/时间线，只靠左右位置、头像、间距区分） ============ */
-  .fmsg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:20px;padding:16px 24px 24px}
+  .fmsg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:20px;padding:16px 24px 24px;max-width:720px;margin:0 auto}  /* 片11-任务4：叙事列 720px 限宽居中（布局宪法·条1）*/
   /* 运行中活动条：sticky 顶部固定显示"正在做什么"（OpenHands live chip 语义） */
   .fmsg-live{
     position:sticky;top:6px;z-index:2;align-self:flex-start;
@@ -567,6 +567,7 @@
     white-space:pre-wrap;word-break:break-all;max-height:52vh;overflow:auto;
   }
   .fmsg-chip.open .fmsg-chip-d{display:block}
+  .fmsg-chip-sum{font-family:var(--font-body);font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px;padding-bottom:7px;border-bottom:1px solid rgba(233,232,239,.07)}
   .fmsg-sec{font-size:10px;color:rgba(233,232,239,.4);margin:6px 0 2px;font-family:var(--font-body)}
   /* 完成 / 失败卡片：轻量、视觉比正文稍突出（Codex resultCard 语义） */
   .fmsg-done{
