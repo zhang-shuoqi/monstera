@@ -2283,6 +2283,7 @@ function streamTask(taskId, runP){
   return new Promise(resolve => {
     let gotFrame = false;
     let finished = false;
+    b5StartTimer();                          // 片12-任务1：执行期 1s 卡住翻牌
     const finish = () => {
       if (finished) return;
       finished = true;
@@ -2297,6 +2298,7 @@ function streamTask(taskId, runP){
       gotFrame = true;
       agentSseDown = false;                 // 帧到达：连接恢复，live 条还原正常动作
       agentLastSnap = snap;
+      agentLastTs = Date.now();             // 片12-任务1：新帧记录时间戳（卡住检测）
       renderTaskSnap(snap);
       const st = snap.status;
       if (st === 'completed' || st === 'failed'){
@@ -2332,6 +2334,7 @@ async function fallbackPoll(taskId, finish){
     try{
       const task = await apiFetch(`/agent/tasks/${taskId}`);
       renderTaskSnap(task);
+      agentLastTs = Date.now();             // 片12-任务1：轮询也算新帧（卡住检测）
       const st = task.status;
       if (st === 'completed' || st === 'failed'){
         toast(st === 'completed' ? '任务已完成' : '任务失败');
@@ -2488,6 +2491,7 @@ function buildFmsgChips(evs){
       cur.hasCall = true;
       cur.title = fmsgToolLabel(e.payload.tool, e.payload.args);
       cur.args = e.payload.args;
+      cur.tool = e.payload.tool;   /* 片12-任务1：供 B5 概念面包屑映射 */
     }
     else if (e.type === 'TOOL_RESULT_RECEIVED'){
       if (!cur){ cur = { stepNo: chips.length + 1, hasCall: false, hasResult: false,
@@ -2558,7 +2562,7 @@ function renderAgentViewIncremental(v, task){
     const data = window.Alpine.reactive({
       state: st, running, done, ok,
       userText: task.objective || '',
-      liveLabel: running ? liveLabelOf(task.events || []) : '',
+      liveLabel: running ? liveLabelOf(task.events || [], st) : '',
       chips,
       metaLine, costLine, failTitle, failReason: fmtFailReason(task.fail_reason),
     });
@@ -2601,7 +2605,7 @@ function renderAgentViewIncremental(v, task){
     const d = cur.data;
     d.state = st; d.running = running; d.done = done; d.ok = ok;
     d.userText = task.objective || '';
-    d.liveLabel = running ? liveLabelOf(task.events || []) : '';
+    d.liveLabel = running ? liveLabelOf(task.events || [], st) : '';
     d.chips = chips;
     d.metaLine = metaLine; d.costLine = costLine; d.failTitle = failTitle;
     d.failReason = fmtFailReason(task.fail_reason);
@@ -2640,7 +2644,45 @@ function paneAllowLogRows(taskId){ const rows = ALWAYS_ALLOW_LOG.filter(r => r.t
 /* —— 片9 item7：live 条 SSE 断线 → 灰字「连接中断，正在重连」；帧恢复即还原 —— */
 let agentSseDown = false;
 let agentLastSnap = null;
-function liveLabelOf(evs){ return agentSseDown ? '连接中断，正在重连' : (agentLiveLabel(evs) || '执行中…'); }
+/* —— 片12-任务1：B5 面包屑升维 ——
+   概念面包屑（里程碑+进度，不出现工具名）+ 诚实状态标签（推进中/等你确认/疑似卡住/已完成）；
+   卡住检测 = SSE 超过 B5_STUCK_MS（45s）无事件切「疑似卡住」，阈值常量可调；全部静态文本零动画。 */
+const B5_STUCK_MS = 45000;
+const B5_CONCEPT = { file_write:'写入配置', file_edit:'修改代码', file_read:'读取', list_dir:'查看目录', run_command:'执行命令', shell:'执行命令', search:'搜索', grep:'搜索' };
+function b5Concept(tool){ return B5_CONCEPT[tool] || '处理'; }
+let agentLastTs = 0;                      // 最近一次 SSE/轮询新帧时间戳（卡住检测依据）
+function liveLabelOf(evs, status){
+  if (agentSseDown) return '连接中断，正在重连';
+  const label = agentLiveLabel(evs, status);
+  return label || '执行中…';
+}
+/* 概念面包屑 + 诚实标签（不吐工具内部名、无进度条动画） */
+function agentLiveLabel(evs, status){
+  const chips = buildFmsgChips(evs || []);
+  let active = null;
+  /* 取最近一次工具动作（含已完成的）：执行期无空隙，逐轮推进 */
+  for (let i = chips.length - 1; i >= 0; i--){ const s = chips[i]; if (s.hasCall){ active = s; break; } }
+  const waiting = (status === 'waiting_human') || chips.some(x => x.state === 'wait');
+  const stuck = !waiting && agentLastTs > 0 && (Date.now() - agentLastTs) > B5_STUCK_MS;
+  const done = status === 'completed' || status === 'failed';
+  const tag = done ? '已完成' : waiting ? '等你确认' : stuck ? '疑似卡住' : '推进中';
+  const crumb = active ? `${b5Concept(active.tool)} ${active.stepNo}/${(chips.length || active.stepNo)}` : '处理中';
+  return `${crumb} · ${tag}`;
+}
+/* 静默卡住翻牌：执行中每 1s 用最近快照刷新两处 live 标签文本（仅改字，不重渲染、不动滚动） */
+let b5Timer = null;
+function b5StartTimer(){
+  if (b5Timer) return;
+  b5Timer = setInterval(() => {
+    if (!agentLastSnap) return;
+    if (agentLastSnap.status !== 'executing') return;
+    const label = liveLabelOf((agentLastSnap.events || []), agentLastSnap.status);
+    const f = document.querySelector('.fmsg-live');
+    if (f) f.textContent = label;
+    const at = document.querySelector('#agentRunText');
+    if (at) at.textContent = label;
+  }, 1000);
+}
 
 function agentViewRender(task){
   const v = $('taskView');
@@ -2762,7 +2804,7 @@ function agentViewRender(task){
 
   /* —— 运行中：消息流顶部 sticky「当前动作」（OpenHands/Codex live chip 语义）—— */
   let liveHtml = '';
-  if (running) liveHtml = `<div class="fmsg-live${agentSseDown ? ' down' : ''}">${liveLabelOf(evs) || '执行中…'}</div>`;
+  if (running) liveHtml = `<div class="fmsg-live${agentSseDown ? ' down' : ''}">${liveLabelOf(evs, st) || '执行中…'}</div>`;
 
   v.innerHTML = `<div class="fmsg">
     ${liveHtml}
@@ -2919,17 +2961,6 @@ function paneSteps(evs, running){
     </div>`;
   }).join('');
 }
-/* 当前"正在做什么"的短标签（由 stepStates 活跃步派生，非本地维护状态）：
-   扫描 chips，取最近一个 hasCall===true && hasResult===false 的步骤 → 读取其工具名/动作生成文案；
-   无活跃步骤且任务未终态时返回空串（由调用方给兜底文案）。 */
-function agentLiveLabel(evs){
-  const chips = buildFmsgChips(evs || []);
-  for (let i = chips.length - 1; i >= 0; i--){
-    const s = chips[i];
-    if (s.hasCall && !s.hasResult) return `正在执行 · 第 ${s.stepNo} 轮 · ${s.title}`;
-  }
-  return '';
-}
 function agentPaneRender(task){
   const body = $('agentBody');
   if (!task) return;
@@ -2987,7 +3018,7 @@ function agentPaneRender(task){
   if (lv){
     const txt = $('agentRunText');
     if (running){
-      const label = agentLiveLabel(evs);
+      const label = liveLabelOf(evs, st);
       lv.classList.add('show');
       if (txt) txt.innerHTML = label || '执行中…';
     } else {
@@ -3282,20 +3313,27 @@ try{ if (localStorage.getItem('monstera.sideHidden') === '1') appEl.classList.ad
 /* ---------- 历史对话折叠（默认展开） ---------- */
 $('histToggle').addEventListener('click', () => sidebarEl.classList.toggle('hist-collapsed'));
 
+/* ---------- 片12-任务3：布局宽度持久化（白名单三键，其余不入库） ----------
+   键：monstera.layout.sideW / agentW / paneOpen */
+function cfgGet(key){ try{ return localStorage.getItem('monstera.layout.' + key); }catch(_){ return null; } }
+function configSet(key, val){ try{ localStorage.setItem('monstera.layout.' + key, val); }catch(_){} }
+
 /* ---------- 分割条拖拽调宽：左栏 / Agent 面板 ---------- */
-function attachResizer(bar, cssVar, onMove){
+function attachResizer(bar, cssVar, onMove, storeKey){
   bar.addEventListener('pointerdown', e => {
     e.preventDefault();
     bar.setPointerCapture(e.pointerId);
     bar.classList.add('dragging');
     document.body.classList.add('resizing');
+    let lastV = null;
     const move = ev => {
       const v = onMove(ev.clientX);
-      if (v != null) appEl.style.setProperty(cssVar, v + 'px');
+      if (v != null){ lastV = v; appEl.style.setProperty(cssVar, v + 'px'); }
     };
     const up = () => {
       bar.classList.remove('dragging');
       document.body.classList.remove('resizing');
+      if (storeKey && lastV != null) configSet(storeKey, Math.round(lastV));
       bar.removeEventListener('pointermove', move);
       bar.removeEventListener('pointerup', up);
       bar.removeEventListener('pointercancel', up);
@@ -3305,15 +3343,35 @@ function attachResizer(bar, cssVar, onMove){
     bar.addEventListener('pointercancel', up);
   });
 }
-attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(window.innerWidth * 0.4, x)));
-attachResizer($('resizerAgent'), '--agent-w', x => Math.max(220, Math.min(window.innerWidth * 0.5, window.innerWidth - x)));
+attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(window.innerWidth * 0.4, x)), 'sideW');
+attachResizer($('resizerAgent'), '--agent-w', x => Math.max(220, Math.min(window.innerWidth * 0.5, window.innerWidth - x)), 'agentW');
+/* 启动时读回布局（片12-任务3）：延迟到同步初始化完成后，避免 const TDZ */
+setTimeout(function initLayout(){
+  const sw = cfgGet('sideW'); if (sw) appEl.style.setProperty('--side-w', sw + 'px');
+  const aw = cfgGet('agentW'); if (aw) appEl.style.setProperty('--agent-w', aw + 'px');
+  if (cfgGet('paneOpen') === '1') setAgentPane(true);
+}, 0);
 
 /* ---------- Agent 执行状态面板（默认折叠，由右上角折叠钮展开/收起） ---------- */
+function isNarrow(){ return window.innerWidth <= 1100; }
 function setAgentPane(open){
   agentPaneEl.classList.toggle('open', open);
   $('resizerAgent').classList.toggle('hidden', !open);
   $('wcRight').classList.toggle('wcs-open', open);
+  // 片12-任务2/3：窄窗转浮层——联动遮罩；Esc/点遮罩关闭
+  const mask = $('agentMask');
+  if (mask){ mask.hidden = !(open && isNarrow()); }
+  configSet('paneOpen', open ? '1' : '0');     // 片12-任务3
 }
+// Esc 关闭窄窗浮层面板（仅当面板为浮层态时介入）
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isNarrow() && agentPaneEl.classList.contains('open')){
+    setAgentPane(false);
+  }
+});
+// 点遮罩关闭窄窗浮层面板
+const agentMaskEl = $('agentMask');
+if (agentMaskEl) agentMaskEl.addEventListener('click', () => setAgentPane(false));
 // 右上角折叠钮：面板折叠时点一下展开，展开时点一下收拢
 $('wcRight').addEventListener('click', () => setAgentPane(!agentPaneEl.classList.contains('open')));
 // 连点折叠钮时阻止冒泡到标题栏的 maximize 逻辑
