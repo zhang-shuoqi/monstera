@@ -1893,23 +1893,3 @@
 .ev-row.open ~ .ev-detail-wrap{display:block}
 /* 片8 C4 定位动效：目标一档背景差闪烁一次 .3s（全书唯一引导性动效，非循环） */
 .locate{background:rgba(233,232,239,.07)}
-
-/* ============ 片12-任务2：窄窗 ≤1100px 响应式布局基建（布局宪法·条4） ============ */
-.agent-mask{position:fixed;inset:0;z-index:49;background:rgba(0,0,0,.45)}
-@media (max-width:1100px){
-  /* 分割条隐藏：窄窗下不再拖调宽；可用宽度 ≥760px（在位布局不重叠） */
-  .resizer{display:none!important;cursor:default}
-  /* 侧栏收为图标轨（约56px），悬停展开 */
-  .sidebar{flex:0 0 56px;min-width:56px;max-width:56px;width:56px;transition:width .18s var(--ease-out),flex-basis .18s var(--ease-out)}
-  .sidebar:hover{flex-basis:212px;width:212px;min-width:212px;max-width:212px;z-index:41;box-shadow:0 12px 44px rgba(0,0,0,.55)}
-  .sidebar:not(:hover) .new-chat{font-size:0}
-  .sidebar:not(:hover) .new-chat::after{content:'+';font-size:15px;font-weight:600}
-  .sidebar:not(:hover) .mode-switch{flex-direction:column}
-  .sidebar:not(:hover) .mode-btn{font-size:0;width:100%}
-  .sidebar:not(:hover) .mode-btn::after{content:'●';font-size:9px}
-  .sidebar:not(:hover) .side-nav .nav-btn{font-size:0;width:40px;height:40px;justify-content:center;padding:0}
-  .sidebar:not(:hover) .hist-head,.sidebar:not(:hover) .conv-list,.sidebar:not(:hover) .agent-hist{opacity:0;pointer-events:none;max-height:0;overflow:hidden}
-  .sidebar:hover .hist-head,.sidebar:hover .conv-list,.sidebar:hover .agent-hist{opacity:1;pointer-events:auto;max-height:none}
-  /* 面板转浮层：fixed 右抽屉 + 遮罩（Esc/点遮罩关闭由 JS 承担） */
-  .app.mode-agent .agent-pane.open{position:fixed;right:0;top:42px;bottom:0;width:min(460px,92vw);flex:0 0 auto;z-index:50;box-shadow:-18px 0 50px rgba(0,0,0,.55)}
-}
