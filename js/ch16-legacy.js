@@ -3283,20 +3283,27 @@ try{ if (localStorage.getItem('monstera.sideHidden') === '1') appEl.classList.ad
 /* ---------- 历史对话折叠（默认展开） ---------- */
 $('histToggle').addEventListener('click', () => sidebarEl.classList.toggle('hist-collapsed'));
 
+/* ---------- 宽度持久化（白名单三键，其余不入库） ----------
+   键：monstera.layout.sideW / agentW / paneOpen */
+function cfgGet(key){ try{ return localStorage.getItem('monstera.layout.' + key); }catch(_){ return null; } }
+function configSet(key, val){ try{ localStorage.setItem('monstera.layout.' + key, val); }catch(_){} }
+
 /* ---------- 分割条拖拽调宽：左栏 / Agent 面板 ---------- */
-function attachResizer(bar, cssVar, onMove){
+function attachResizer(bar, cssVar, onMove, storeKey){
   bar.addEventListener('pointerdown', e => {
     e.preventDefault();
     bar.setPointerCapture(e.pointerId);
     bar.classList.add('dragging');
     document.body.classList.add('resizing');
+    let lastV = null;
     const move = ev => {
       const v = onMove(ev.clientX);
-      if (v != null) appEl.style.setProperty(cssVar, v + 'px');
+      if (v != null){ lastV = v; appEl.style.setProperty(cssVar, v + 'px'); }
     };
     const up = () => {
       bar.classList.remove('dragging');
       document.body.classList.remove('resizing');
+      if (storeKey && lastV != null) configSet(storeKey, Math.round(lastV));
       bar.removeEventListener('pointermove', move);
       bar.removeEventListener('pointerup', up);
       bar.removeEventListener('pointercancel', up);
@@ -3306,14 +3313,21 @@ function attachResizer(bar, cssVar, onMove){
     bar.addEventListener('pointercancel', up);
   });
 }
-attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(window.innerWidth * 0.4, x)));
-attachResizer($('resizerAgent'), '--agent-w', x => Math.max(220, Math.min(window.innerWidth * 0.5, window.innerWidth - x)));
+attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(window.innerWidth * 0.4, x)), 'sideW');
+attachResizer($('resizerAgent'), '--agent-w', x => Math.max(220, Math.min(window.innerWidth * 0.5, window.innerWidth - x)), 'agentW');
+/* 启动时读回布局（延迟到同步初始化完成后，避免 const TDZ） */
+setTimeout(function initLayout(){
+  const sw = cfgGet('sideW'); if (sw) appEl.style.setProperty('--side-w', sw + 'px');
+  const aw = cfgGet('agentW'); if (aw) appEl.style.setProperty('--agent-w', aw + 'px');
+  if (cfgGet('paneOpen') === '1') setAgentPane(true);
+}, 0);
 
 /* ---------- Agent 执行状态面板（默认折叠，由右上角折叠钮展开/收起） ---------- */
 function setAgentPane(open){
   agentPaneEl.classList.toggle('open', open);
   $('resizerAgent').classList.toggle('hidden', !open);
   $('wcRight').classList.toggle('wcs-open', open);
+  configSet('paneOpen', open ? '1' : '0');     // 宽度持久化：面板开合
 }
 // 右上角折叠钮：面板折叠时点一下展开，展开时点一下收拢
 $('wcRight').addEventListener('click', () => setAgentPane(!agentPaneEl.classList.contains('open')));
