@@ -83,10 +83,7 @@
     </div>
   </aside>
 
-  <!-- 分割条：左栏 <-> 中间 -->
-  <div class="resizer" id="resizerSide" title="拖动调整侧栏宽度"></div>
-
-  <!-- 中间：对话区 -->
+  <!-- 中间：对话区（chat 卡本身，左右框线即拖把位置，严丝合缝） -->
   <main class="chat" id="chatArea">
     <div class="net-banner" id="netBanner" hidden>
       <span>⚠ 网络已断开，请检查连接后重试</span>
@@ -148,10 +145,10 @@
       </div>
       <div class="ai-disc">内容由 AI 生成，请谨慎甄别</div>
     </div>
+    <!-- 布局宪法v4：聊天框左右框线拖把（贴齐 chat 卡框线，严丝合缝，不超不短） -->
+    <div class="chat-resizer chat-resizer-l" id="resizerSide" title="拖动侧栏宽度"></div>
+    <div class="chat-resizer chat-resizer-r hidden" id="resizerAgent" title="拖动执行面板宽度"></div>
   </main>
-
-  <!-- 分割条：中间 <-> Agent 执行面板（仅 Agent 模式且展开时可用） -->
-  <div class="resizer resizer-agent hidden" id="resizerAgent" title="拖动调整执行面板宽度"></div>
 
   <!-- 最右侧：Agent 执行状态（仅 Agent 模式显示，默认折叠） -->
   <aside class="agent-pane" id="agentPane">

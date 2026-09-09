@@ -3288,22 +3288,25 @@ $('histToggle').addEventListener('click', () => sidebarEl.classList.toggle('hist
 function cfgGet(key){ try{ return localStorage.getItem('monstera.layout.' + key); }catch(_){ return null; } }
 function configSet(key, val){ try{ localStorage.setItem('monstera.layout.' + key, val); }catch(_){} }
 
-/* ---------- 分割条拖拽调宽：左栏 / Agent 面板 ---------- */
-function attachResizer(bar, cssVar, onMove, storeKey){
+/* ---------- 聊天卡左右框线拖把（布局宪法v4）：delta 拖拽，贴齐 chat 卡框线，严丝合缝 ---------- */
+function laAgentW(){ const v = parseFloat(appEl.style.getPropertyValue('--agent-w')); return isFinite(v) ? v : 340; }
+function attachResizer(bar, persistKey, onStart, onDelta){
   bar.addEventListener('pointerdown', e => {
     e.preventDefault();
     bar.setPointerCapture(e.pointerId);
     bar.classList.add('dragging');
     document.body.classList.add('resizing');
+    const startX = e.clientX;
+    const base = onStart();
     let lastV = null;
     const move = ev => {
-      const v = onMove(ev.clientX);
-      if (v != null){ lastV = v; appEl.style.setProperty(cssVar, v + 'px'); }
+      const r = onDelta(ev.clientX - startX, base);
+      if (r && r.value != null){ lastV = r.value; appEl.style.setProperty(r.cssVar, r.value + 'px'); }
     };
     const up = () => {
       bar.classList.remove('dragging');
       document.body.classList.remove('resizing');
-      if (storeKey && lastV != null) configSet(storeKey, Math.round(lastV));
+      if (persistKey && lastV != null) configSet(persistKey, Math.round(lastV));
       bar.removeEventListener('pointermove', move);
       bar.removeEventListener('pointerup', up);
       bar.removeEventListener('pointercancel', up);
@@ -3322,27 +3325,28 @@ function foldSide(){   // 拖到左栏折点 → 折入 side-hidden，仅按钮(
   try{ localStorage.setItem('monstera.sideHidden','1'); }catch(_){}
   appEl.style.setProperty('--side-w', '260px');
 }
-/* 左栏把手 / 聊天区左界：左拖压左栏至折叠；右拖仅恢复原宽(上限=默认260，禁右推聊天区) */
-attachResizer($('resizerSide'), '--side-w', x => {
-  if (x <= LA_SIDE_FOLD){ foldSide(); return 260; }
-  return Math.max(LA_SIDE_FOLD, Math.min(260, x));
-}, 'sideW');
-/* 右栏把手 / 聊天区右界：左拖加宽(先空白→再左栏→45%停)；右拖压右栏至折叠 */
-attachResizer($('resizerAgent'), '--agent-w', x => {
+/* 左把手 / 聊天区左界：左拖压左栏至折叠；右拖仅恢复原宽(上限=默认260，禁右推聊天区) */
+attachResizer($('resizerSide'), 'sideW', laSideW, (dx, base) => {
+  const ns = base + dx;
+  if (ns <= LA_SIDE_FOLD){ foldSide(); return {cssVar: '--side-w', value: 260}; }
+  return {cssVar: '--side-w', value: Math.max(LA_SIDE_FOLD, Math.min(260, ns))};
+});
+/* 右把手 / 聊天区右界：左拖加宽(先空白→再左栏→45%停)；右拖压右栏至折叠 */
+attachResizer($('resizerAgent'), 'agentW', laAgentW, (dx, base) => {
   const iw = window.innerWidth;
-  const want = iw - x;
-  if (want <= LA_AGENT_FOLD){ setAgentPane(false); return 340; }   // 压到折点 → 折入面板，仅按钮可恢复
   let side = laSideW();
+  let aw = base - dx;                          // 左拖(dx<0)→面板变宽；右拖→变窄
+  if (aw <= LA_AGENT_FOLD){ setAgentPane(false); return {cssVar: '--agent-w', value: 340}; }  // 压到折点 → 折入面板，仅按钮可恢复
   const room = iw - LA_RESIZERS - side - LA_TEXT_MIN;              // 不动左栏时右栏上限（chat≥480）
-  let aw = Math.max(LA_AGENT_FOLD, Math.min(0.45 * iw, want));
   if (aw > room && aw < 0.45 * iw && side > LA_SIDE_FOLD){         // 先压空白再压左栏(260→150)
     const ns = Math.max(LA_SIDE_FOLD, iw - LA_RESIZERS - LA_TEXT_MIN - aw);
     appEl.style.setProperty('--side-w', ns + 'px');
     side = laSideW();
   }
   const awMax = Math.min(0.45 * iw, iw - LA_RESIZERS - side - LA_TEXT_MIN);
-  return Math.max(LA_AGENT_FOLD, Math.min(aw, awMax));
-}, 'agentW');
+  aw = Math.max(LA_AGENT_FOLD, Math.min(aw, awMax));
+  return {cssVar: '--agent-w', value: aw};
+});
 /* 启动时读回布局（延迟到同步初始化完成后，避免 const TDZ） */
 setTimeout(function initLayout(){
   const sw = cfgGet('sideW'); if (sw) appEl.style.setProperty('--side-w', sw + 'px');

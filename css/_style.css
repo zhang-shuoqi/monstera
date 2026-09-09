@@ -169,16 +169,17 @@
   /* 侧栏折叠后：对话内容展示框里的「模型」栏一并收起（模型改在展开侧栏时管理） */
   .app.side-hidden .composer .capsule{display:none}
 
-  /* ============ 分割条（左右拖动调宽） ============ */
-  .resizer{flex:0 0 5px;cursor:col-resize;position:relative;z-index:20}
-  .resizer::after{
-    /* Phase 6 无框化：平时不可见；悬停/拖动时才亮金色条，作为可拖拽提示 */
-    content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;
-    background:transparent;transition:background .15s,box-shadow .15s;
-  }
-  .resizer:hover::after,.resizer.dragging::after{background:var(--gold);box-shadow:0 0 6px rgba(227,199,159,.5)}
-  .resizer#resizerAgent{display:none}
-  .app.mode-agent .resizer#resizerAgent{display:block}
+  /* ============ 聊天卡左右框线拖把（布局宪法v4：拖线=聊天框框线，严丝合缝） ============ */
+  .chat-resizer{position:absolute;top:-1px;bottom:-1px;width:13px;cursor:col-resize;background:transparent;z-index:20;touch-action:none}
+  .chat-resizer-l{left:-1px}
+  .chat-resizer-r{right:-1px}
+  .chat-resizer::before{position:absolute;top:16px;bottom:16px;width:1px;background:transparent;transition:background .15s,box-shadow .15s}
+  .chat-resizer-l::before{left:0}
+  .chat-resizer-r::before{right:0}
+  .chat-resizer:hover::before,.chat-resizer.dragging::before{background:var(--gold);box-shadow:0 0 6px rgba(227,199,159,.5)}
+  /* 右拖只存在于 Agent 模式且展开；折叠/收起时隐藏（恢复唯一性） */
+  .chat-resizer-r{display:none}
+  .app.mode-agent .chat-resizer-r{display:block}
   .app.mode-agent #resizerAgent.hidden{display:none}
   body.resizing{cursor:col-resize;user-select:none}
 
