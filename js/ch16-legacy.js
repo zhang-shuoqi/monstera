@@ -3313,8 +3313,24 @@ function attachResizer(bar, cssVar, onMove, storeKey){
     bar.addEventListener('pointercancel', up);
   });
 }
-attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(window.innerWidth * 0.4, x)), 'sideW');
-attachResizer($('resizerAgent'), '--agent-w', x => Math.max(220, Math.min(window.innerWidth * 0.5, window.innerWidth - x)), 'agentW');
+attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(260, x)), 'sideW');
+/* 布局宪法v4 A态：挤压顺序 文字(480下限)→空白→左栏；右栏 300~45%屏宽 */
+const LA_TEXT_MIN = 480, LA_RESIZERS = 10;
+function laSideW(){ const v = parseFloat(appEl.style.getPropertyValue('--side-w')); return isFinite(v) ? v : 260; }
+attachResizer($('resizerAgent'), '--agent-w', x => {
+  const iw = window.innerWidth;
+  let aw = Math.max(300, Math.min(0.45 * iw, iw - x));
+  let side = laSideW();
+  // 右栏左拖：先吃聊天区空白（chat 自然缩到 480 下限）→ 再压左栏（260→150）
+  const room = iw - LA_RESIZERS - side - LA_TEXT_MIN;   // 不动左栏时右栏上限（chat≥480）
+  if (aw > room && aw < 0.45 * iw && side > 150){
+    const ns = Math.max(150, iw - LA_RESIZERS - LA_TEXT_MIN - aw);
+    appEl.style.setProperty('--side-w', ns + 'px');
+    side = laSideW();
+  }
+  const awMax = Math.min(0.45 * iw, iw - LA_RESIZERS - side - LA_TEXT_MIN);
+  return Math.max(300, Math.min(aw, awMax));
+}, 'agentW');
 /* 启动时读回布局（延迟到同步初始化完成后，避免 const TDZ） */
 setTimeout(function initLayout(){
   const sw = cfgGet('sideW'); if (sw) appEl.style.setProperty('--side-w', sw + 'px');

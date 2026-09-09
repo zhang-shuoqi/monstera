@@ -37,8 +37,8 @@
 
   /* ============ 左侧：约 20%，可折叠（默认展开），可拖拽调整宽度 ============ */
   .sidebar{
-    flex:0 0 var(--side-w,20%);
-    min-width:150px;max-width:38%;
+    flex:0 0 var(--side-w,260px);
+    min-width:150px;max-width:260px;
     display:flex;flex-direction:column;
     border-right:0;   /* Phase 6 无框化：去掉右侧分隔线（拖拽调宽仍由 .resizer 承担） */
     overflow:hidden;background:var(--bg);
@@ -231,7 +231,7 @@
   /* ============ Agent 执行状态面板（最右侧） ============ */
   .agent-pane{
     display:none;flex-direction:column;
-    flex:0 0 var(--agent-w,26%);min-width:0;
+    flex:0 0 var(--agent-w,340px);min-width:300px;
     background:var(--bg);border-left:1px solid var(--gold-line);
     overflow:hidden;
   }
@@ -516,7 +516,7 @@
   }
 
   /* ============ 中间区：Codex 式自由消息流（无气泡/卡片/时间线，只靠左右位置、头像、间距区分） ============ */
-  .fmsg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:20px;padding:16px 24px 24px;max-width:720px;margin:0 auto}  /* 片11-任务4：叙事列 720px 限宽居中（布局宪法·条1）*/
+  .fmsg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:20px;padding:16px 24px 24px;max-width:680px;margin:0 auto}  /* 布局宪法v4/任务1-2：文字列 680px 定宽居中（720→680），两侧空白=弹簧，padding 24=地板 */
   /* 运行中活动条：sticky 顶部固定显示"正在做什么"（OpenHands live chip 语义） */
   .fmsg-live{
     position:sticky;top:6px;z-index:2;align-self:flex-start;
