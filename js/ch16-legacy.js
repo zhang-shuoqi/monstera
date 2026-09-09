@@ -3313,23 +3313,35 @@ function attachResizer(bar, cssVar, onMove, storeKey){
     bar.addEventListener('pointercancel', up);
   });
 }
-attachResizer($('resizerSide'), '--side-w', x => Math.max(150, Math.min(260, x)), 'sideW');
-/* 布局宪法v4 A态：挤压顺序 文字(480下限)→空白→左栏；右栏 300~45%屏宽 */
+/* 布局宪法v4 A态：挤压顺序 文字(480下限)→空白→左栏；右栏 300~45%屏宽；拖到阈值即折叠。 */
 const LA_TEXT_MIN = 480, LA_RESIZERS = 10;
+const LA_SIDE_FOLD = 150, LA_AGENT_FOLD = 300;   // 折点=最小宽
 function laSideW(){ const v = parseFloat(appEl.style.getPropertyValue('--side-w')); return isFinite(v) ? v : 260; }
+function foldSide(){   // 拖到左栏折点 → 折入 side-hidden，仅按钮(wcSideBar)可恢复
+  appEl.classList.add('side-hidden');
+  try{ localStorage.setItem('monstera.sideHidden','1'); }catch(_){}
+  appEl.style.setProperty('--side-w', '260px');
+}
+/* 左栏把手 / 聊天区左界：左拖压左栏至折叠；右拖仅恢复原宽(上限=默认260，禁右推聊天区) */
+attachResizer($('resizerSide'), '--side-w', x => {
+  if (x <= LA_SIDE_FOLD){ foldSide(); return 260; }
+  return Math.max(LA_SIDE_FOLD, Math.min(260, x));
+}, 'sideW');
+/* 右栏把手 / 聊天区右界：左拖加宽(先空白→再左栏→45%停)；右拖压右栏至折叠 */
 attachResizer($('resizerAgent'), '--agent-w', x => {
   const iw = window.innerWidth;
-  let aw = Math.max(300, Math.min(0.45 * iw, iw - x));
+  const want = iw - x;
+  if (want <= LA_AGENT_FOLD){ setAgentPane(false); return 340; }   // 压到折点 → 折入面板，仅按钮可恢复
   let side = laSideW();
-  // 右栏左拖：先吃聊天区空白（chat 自然缩到 480 下限）→ 再压左栏（260→150）
-  const room = iw - LA_RESIZERS - side - LA_TEXT_MIN;   // 不动左栏时右栏上限（chat≥480）
-  if (aw > room && aw < 0.45 * iw && side > 150){
-    const ns = Math.max(150, iw - LA_RESIZERS - LA_TEXT_MIN - aw);
+  const room = iw - LA_RESIZERS - side - LA_TEXT_MIN;              // 不动左栏时右栏上限（chat≥480）
+  let aw = Math.max(LA_AGENT_FOLD, Math.min(0.45 * iw, want));
+  if (aw > room && aw < 0.45 * iw && side > LA_SIDE_FOLD){         // 先压空白再压左栏(260→150)
+    const ns = Math.max(LA_SIDE_FOLD, iw - LA_RESIZERS - LA_TEXT_MIN - aw);
     appEl.style.setProperty('--side-w', ns + 'px');
     side = laSideW();
   }
   const awMax = Math.min(0.45 * iw, iw - LA_RESIZERS - side - LA_TEXT_MIN);
-  return Math.max(300, Math.min(aw, awMax));
+  return Math.max(LA_AGENT_FOLD, Math.min(aw, awMax));
 }, 'agentW');
 /* 启动时读回布局（延迟到同步初始化完成后，避免 const TDZ） */
 setTimeout(function initLayout(){
