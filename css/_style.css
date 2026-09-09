@@ -223,7 +223,7 @@
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:10px;padding-bottom:8vh;
   }
-  .chat--empty .composer{width:100%;max-width:700px}
+  .chat--empty .composer{width:100%;max-width:680px}
   .chat--empty .composer-wrap .ai-disc{margin-top:0}
   /* 无模型：仅显示引导卡片 */
   .chat--nomodel .messages,.chat--nomodel .composer-wrap,.chat--nomodel .scroll-down{display:none}
@@ -752,6 +752,7 @@
   /* ============ 输入区 ============ */
   .composer-wrap{padding:0 24px 18px}
   .composer{
+    width:100%;max-width:680px;margin:0 auto;   /* 布局宪法v4：输入框对齐叙事列 680px 居中，不随聊天卡拉伸 */
     border:1px solid var(--gold-line-strong);
     border-radius:14px;
     background:linear-gradient(180deg,#0E242C,#0C1E25);
