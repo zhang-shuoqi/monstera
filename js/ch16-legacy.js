@@ -2455,8 +2455,8 @@ function fmsgChipHtml(c, live){
   const cls = `${c.state || ''}${live ? ' live open' : (userOpen ? ' open' : '')}`.trim();
   return `<div class="fmsg-chip ${cls}"${ext} data-step-no="${c.stepNo}">
     <div class="fmsg-chip-h">
-      <span class="fmsg-chev">▸</span>${flag}
       <span class="fmsg-chip-t"${ti.full.length > ti.short.length ? ` title="${escHtml(ti.full)}"` : ''}>${escHtml(title)}</span>
+      <span class="fmsg-chev">▸</span>${flag}
     </div>
     ${detail ? `<div class="fmsg-chip-d">${detail}</div>` : ''}
   </div>`;
@@ -2574,9 +2574,9 @@ function renderAgentViewIncremental(v, task){
       <template x-for="c in chips" :key="c.stepNo">
         <div class="fmsg-chip" :class="c.cls" :data-step-no="c.stepNo" :data-has-detail="c.hasDetail ? '1' : null">
           <div class="fmsg-chip-h">
-            <span class="fmsg-chev">▸</span>
-            <span class="fmsg-flag" x-show="!!c.flag" x-text="c.flag"></span>
             <span class="fmsg-chip-t" x-text="c.title"></span>
+            <span class="fmsg-flag" x-show="!!c.flag" x-text="c.flag"></span>
+            <span class="fmsg-chev">▸</span>
           </div>
           <div class="fmsg-chip-d" x-show="c.hasDetail" x-html="c.detail"></div>
         </div>

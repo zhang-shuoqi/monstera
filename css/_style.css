@@ -554,7 +554,7 @@
   .fmsg-chip-h:hover{background:rgba(233,232,239,.05)}
   .fmsg-chev{font-size:9px;color:var(--dim);flex:none;transition:transform .15s}
   .fmsg-chip.open .fmsg-chev{transform:rotate(90deg)}
-  .fmsg-chip-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fmsg-chip-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}  /* 布局宪法v4：文字占满，排头符号靠右 */
   .fmsg-flag{flex:none;font-size:11px}
   .fmsg-chip.ok .fmsg-flag{color:var(--green)}
   .fmsg-chip.err .fmsg-flag{color:var(--red)}
