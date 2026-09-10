@@ -107,6 +107,10 @@
   .conv-ic{width:13px;height:13px;flex:none;color:rgba(233,232,239,.38)}
   .conv-item:hover .conv-ic,.conv-item.active .conv-ic{color:var(--gold)}
   .conv-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 布局v4：历史条目标题 ≥22字省略号（p2Trunc）+ 悬停日期小浮窗 */
+  .hist-date-tip{position:fixed;z-index:100;display:none;padding:5px 9px;border-radius:7px;
+    background:var(--panel-2);border:1px solid var(--gold-line-strong);color:var(--text);
+    font-size:11px;line-height:1;pointer-events:none;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
   .conv-pin{color:var(--gold);display:flex;flex:none;opacity:.9}
   .conv-pin svg{width:11px;height:11px}
 

@@ -262,9 +262,9 @@ function renderConvs(){
     return;
   }
   $('convList').innerHTML = list.map(c => `
-    <div class="conv-item ${c.id === state.activeConv ? 'active' : ''}" data-conv="${c.id}" title="${escHtml(c.title)}">
+    <div class="conv-item ${c.id === state.activeConv ? 'active' : ''}" data-conv="${c.id}" data-date="${escHtml(fmtHoverDate(c.updated_at))}">
       <svg class="conv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span class="conv-name">${escHtml(c.title)}</span>
+      <span class="conv-name">${escHtml(p2Trunc(c.title, LIST_TITLE_N).short)}</span>
       ${c.pinned ? `<span class="conv-pin" title="已置顶">${PIN_SVG}</span>` : ''}
     </div>
   `).join('');
@@ -2202,7 +2202,43 @@ function startNewAgentTask(){
   setAgentPane(false);   // 折叠右侧执行面板，避免残留已删任务的陈迹
   loadAgentTasks();
 }
-/* —— 历史任务折叠区：加载 / 渲染（悬停操作：重试 / 删除） —— */
+/* —— 左栏悬浮日期（布局v4）：历史任务/对话 标题限宽 + 日期悬停浮窗 —— */
+const LIST_TITLE_N = 22;   // 历史条目标题字数上限，超出用省略号
+function fmtHoverDate(v){
+  if (v === null || v === undefined || v === '') return '';
+  const d = (typeof v === 'number') ? new Date(v * 1000) : new Date(v);
+  if (isNaN(d.getTime())) return '';
+  const now = Date.now();
+  return (now - d.getTime() < 3600e3) ? d.toTimeString().slice(0, 5)
+    : `${d.getMonth()+1}/${d.getDate()} ${d.toTimeString().slice(0, 5)}`;
+}
+let histDateTipEl = null;
+function histDateTip(){
+  if (!histDateTipEl){ histDateTipEl = document.createElement('div'); histDateTipEl.className = 'hist-date-tip'; document.body.appendChild(histDateTipEl); }
+  return histDateTipEl;
+}
+function hideHistDateTip(){ if (histDateTipEl) histDateTipEl.style.display = 'none'; }
+function attachHistDateTip(box){
+  box.addEventListener('mouseover', e => {
+    const it = e.target.closest('.task-item[data-date], .conv-item[data-date]');
+    if (!it){ hideHistDateTip(); return; }
+    const tl = histDateTip();
+    tl.textContent = it.getAttribute('data-date');
+    tl.style.display = 'block';
+    const r = it.getBoundingClientRect();
+    const tw = tl.offsetWidth || 80, thg = tl.offsetHeight || 18;
+    let x = r.right + 10, y = r.top + (r.height - thg) / 2;
+    if (x + tw > window.innerWidth - 8) x = Math.max(4, r.left - tw - 10);
+    if (y < 4) y = 4;
+    if (y + thg > window.innerHeight - 4) y = window.innerHeight - thg - 4;
+    tl.style.left = x + 'px'; tl.style.top = y + 'px';
+  });
+  box.addEventListener('mouseleave', hideHistDateTip);
+  box.addEventListener('click', hideHistDateTip);
+}
+attachHistDateTip($('taskList'));
+attachHistDateTip($('convList'));
+/* —— 历史任务折叠区：加载 / 渲染（悬停：删除 / 日期悬浮） —— */
 async function loadAgentTasks(){
   try{
     const rows = await apiFetch('/agent/tasks');
@@ -2213,15 +2249,11 @@ async function loadAgentTasks(){
       return;
     }
     list.innerHTML = rows.map(t => `
-      <div class="task-item ${t.taskId === A.activeTaskId ? 'active' : ''}" data-task="${t.taskId}">
+      <div class="task-item ${t.taskId === A.activeTaskId ? 'active' : ''}" data-task="${t.taskId}" data-date="${escHtml(fmtHoverDate(t.completedAt || t.createdAt))}">
         <span class="task-body">
-          <span class="task-name">${escHtml(t.title || t.objective)}</span>
-          <span class="task-time">${fmtTime(t.completedAt || t.createdAt)} · ${statusLabel(t.status)}</span>
+          <span class="task-name">${escHtml(p2Trunc(t.title || t.objective, LIST_TITLE_N).short)}</span>
         </span>
         ${t.pinned ? '<span class="conv-pin" title="已置顶">' + PIN_SVG + '</span>' : ''}
-        ${t.status === 'failed' ? `<span class="task-ops">
-          <button class="task-op retry" data-op="retry" title="从头重试">↻</button>
-        </span>` : ''}
       </div>`).join('');
   }catch(err){ /* 静默：列表加载失败不阻塞 */ }
 }
