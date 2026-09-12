@@ -19,3 +19,29 @@ __pycache__/
 # 本地运行数据(不入库)
 backend/agent_data/
 test-run/
+
+# 对话记忆（隐私，不入库）
+memory/
+
+# 调试/历史截图与临时图片（开发期视觉资产，不入库）
+*.jpg
+*.jpeg
+docs/**/*.png
+
+# 构建产物
+desktop/dist/
+desktop/build/
+desktop/release/
+
+# 工具状态文件
+.brooks-lint-history.json
+
+# 开发期归档文档（保留本地，不入库）
+/Monstera-Agent地基体检报告.md
+/功能总结与优化建议.md
+/docs/施工进度.md
+/docs/修复定稿.md
+/docs/勘察_片11前.md
+/docs/黄金场景.md
+/docs/治理/
+/docs/screenshots/

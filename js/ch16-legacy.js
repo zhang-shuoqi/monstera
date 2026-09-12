@@ -264,7 +264,7 @@ function renderConvs(){
   $('convList').innerHTML = list.map(c => `
     <div class="conv-item ${c.id === state.activeConv ? 'active' : ''}" data-conv="${c.id}" data-date="${escHtml(fmtHoverDate(c.updated_at))}">
       <svg class="conv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span class="conv-name">${escHtml(p2Trunc(c.title, LIST_TITLE_N).short)}</span>
+      <span class="conv-name">${escHtml(c.title)}</span>
       ${c.pinned ? `<span class="conv-pin" title="已置顶">${PIN_SVG}</span>` : ''}
     </div>
   `).join('');
@@ -523,16 +523,29 @@ function bindScrollRegion(el, btnEl, thr = 80){
     });
   }
 }
-/* 回区扫描：每个绑定了按钮的滚动区，按 own up 显隐自己的回底按钮（片 1 泛化，取代单聊天区逻辑） */
+let _downTarget = null;   // 最近一个「上翻且离底」的滚动区，供固定回底按钮跳转
+/* 回区扫描（全局单按钮）：聊天 / Agent 各滚动区共用唯一 fixed 回底按钮；
+   任一条消息区离底 >80px 即浮现（透明居中浮在输入框上方），全部贴底则隐藏。
+   主流固定范式：按钮不钉任一容器，整体居中于输入框上方。 */
 function updateRegionDownBtns(){
+  _downTarget = null;
   _scrollRegions.forEach((s, el) => {
-    if (!s.btn) return;
-    s.btn.classList.toggle('show', s.up && !isPinnedToBottom(el, 12));
+    if (el.clientHeight <= 0) return;   // 隐藏/空白容器（display:none 时 clientHeight=0）不算待回底，避免残留箭头
+    if (!isPinnedToBottom(el, 80)) _downTarget = el;
   });
+  const btn = document.getElementById('scrollDownBtn');
+  if (btn) btn.classList.toggle('show', !!_downTarget);
 }
-/* 回到底部按钮（聊天区实例）。Agent 两区的按钮在 initAgentScrollRegion 内创建。 */
+/* 唯一回底按钮：点击回到最近离底的滚动区，随后复位跟随并隐藏。 */
 const scrollDownBtn = $('scrollDownBtn');
-bindScrollRegion(messagesEl, scrollDownBtn);
+scrollDownBtn?.addEventListener('click', () => {
+  if (!_downTarget) return;
+  scrollBottom(_downTarget);
+  _scrollState(_downTarget).up = false;
+  updateRegionDownBtns();
+});
+bindScrollRegion(messagesEl);
+/* 回底按钮采用纯 CSS 固定定位（left:50%; bottom:116px）：位置恒定，不随输入框行数/侧栏拖拽回流而抖动。 */
 /* Agent 区滚动主权（片 1）：中间时间线 + 右侧执行面板共用同一控制器。
    开关注册：观察者/验收可置 window.MONSTERA_CH.agentScroll=false 一键回退片 1。
    两个滚动容器需 overflow-anchor:none（CSS 已加），Safari 不支持故脚本判定自给。 */
@@ -547,42 +560,42 @@ window.MONSTERA_CH.mutualLocate   = false; // 片 8：I1/I2 互定位（默认�
 const fmsgOpenSteps = new Set();   // Set<number stepNo>
 let fmsgOpenForTaskId = null;      // 片 2：展开集合归属的任务 id（切换任务即清，防 stepNo 串号）
 /* 片 1 P4：Agent 区回底按钮 + 滚动绑定（渲染后调用，每次 ensure）：
-   - #taskView 节点稳定，仅首次绑定；按钮每次渲染后重挂（内容重建会抹掉它）。
+   - #taskView 节点稳定，仅首次绑定；全局唯一回底按钮由 updateRegionDownBtns 统一显隐。
    - .agent-pane-stream 由 agentPaneRender 整体重建（新节点）→ 每次 ensure 重新 bind。
-   - ensure 幂等：已绑定的容器只更新按钮，不重复挂滚动监听。 */
+   - ensure 幂等：未绑定的容器才挂滚动监听，不重复。 */
 function ensureAgentScrollRegion(el){
   if (!window.MONSTERA_CH || window.MONSTERA_CH.agentScroll === false) return;
   if (!el) return;
-  el.querySelector('.scroll-down-agent')?.remove();
-  const b = document.createElement('button');
-  b.className = 'scroll-down-agent';
-  b.title = '回到底部'; b.setAttribute('aria-label', '回到底部');
-  b.textContent = '回到底部';
-  el.appendChild(b);
-  if (_scrollRegions.has(el)){
-    const s = _scrollRegions.get(el);
-    s.btn = b;
-    b.addEventListener('click', () => { scrollBottom(el); s.up = false; updateRegionDownBtns(); });
-  } else {
-    bindScrollRegion(el, b, 80);
-  }
+  /* 主流固定范式：全局唯一 #scrollDownBtn（fixed 透明居中于输入框上方）由 updateRegionDownBtns 统一显隐；
+     这里只保证该滚动区已注册滚动监听，并刷新一次按钮状态。 */
+  if (!_scrollRegions.has(el)) bindScrollRegion(el);
   updateRegionDownBtns();
 }
 
 function addUserMsg(text, images, msgId){
   const div = document.createElement('div');
   div.className = 'msg-user msg-in';
+  /* 与 Agent 模式一致：纵排——右侧圆形头像「我」在上，文字气泡在下 */
+  const av = document.createElement('div');
+  av.className = 'fmsg-av u'; av.textContent = '我';
+  div.appendChild(av);
+  const bd = document.createElement('div');
+  bd.className = 'msg-bd';
+  /* 长文本自动整理 TXT 卡片（对标 Kimi 文件卡片）：≥ 阈值只显示卡片不显示正文，发送仍携带全文参与对话 */
+  if (text && text.length >= TXT_AUTO_MIN) bd.appendChild(buildTxtCard(text));
   if (images && images.length){
     // 用户附图：缩略图显示在文本上方；已随消息一并落库，历史重开仍显示
-    div.appendChild(renderUserImages(images));
-    if (text) div.appendChild(document.createTextNode('\n' + text));
-  } else {
-    div.textContent = text || '';
+    bd.appendChild(renderUserImages(images));
+    if (text && text.length < TXT_AUTO_MIN) bd.appendChild(document.createTextNode('\n' + text));
+  } else if (!(text && text.length >= TXT_AUTO_MIN)){
+    bd.appendChild(document.createTextNode(text || ''));
   }
+  div.appendChild(bd);
+  div._text = text || '';   // 纯文本缓存：供复制/重新生成读取，避免带上头像「我」
   // 已落库的历史消息：记录消息 id，供右键菜单定位操作
   if (msgId){
     div.dataset.msgId = msgId;
-    mountMsgOps(div, 'user');   // hover 操作条：编辑 / 删除
+    mountMsgOps(div, 'user');   // 常显操作条：编辑 / 删除
   }
   messagesEl.appendChild(div);
   scrollBottom(messagesEl);
@@ -599,6 +612,66 @@ function renderUserImages(images){
   });
   return wrap;
 }
+
+/* —— 长文本自动整理 TXT（对标 Kimi 文件卡片）：用户发送长文本自动显示 .txt 附件卡片，点击弹出全文查看 —— */
+const TXT_AUTO_MIN = 500;   // 触发阈值（字符数）
+function txtCardName(text){
+  const firstLine = (text.split('\n')[0] || '').trim();
+  const stem = (firstLine || text).slice(0, 12);
+  return ('长文_' + stem + '.txt').replace(/[\\/:*?"<>|\n\r]+/g, '_');
+}
+function fmtBytes(text){
+  const n = new Blob([text]).size;
+  return n < 1024 ? n + ' B' : (n / 1024).toFixed(2) + 'KB';
+}
+/* 卡片内部结构（蓝色图标+文件名+大小），聊天 createElement 与 Agent 字符串模板共用 */
+function txtCardInnerHtml(name, sizeStr){
+  return '<span class="txt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></span>' +
+    '<span class="txt-info"><span class="txt-name">' + escHtml(name) + '</span><span class="txt-size">' + escHtml(sizeStr) + '</span></span>';
+}
+function buildTxtCard(text){
+  const card = document.createElement('div');
+  card.className = 'txt-card';
+  card.title = '查看全文';
+  card.dataset.full = text;   // 全文存于 data-full，点击委托据此弹出查看层
+  card.innerHTML = txtCardInnerHtml(txtCardName(text), 'TXT ' + fmtBytes(text));
+  return card;
+}
+/* Agent 模式用户消息：长文本同样转为 TXT 卡片（模板字符串内联，与聊天共用卡片结构与点击查看） */
+function userTxHtml(text){
+  if (text && text.length >= TXT_AUTO_MIN)
+    return '<div class="txt-card" title="查看全文" data-full="' + escHtml(text) + '">' +
+      txtCardInnerHtml(txtCardName(text), 'TXT ' + fmtBytes(text)) + '</div>';
+  return escHtml(text);
+}
+/* —— 点击 TXT 卡片 → 弹出全文查看层（聊天/Agent 共用；Esc / 遮罩 / × 关闭）—— */
+let _txtViewerEl = null, _txtViewerBody = null;
+function closeTxtViewer(){ if (_txtViewerEl) _txtViewerEl.classList.remove('open'); }
+function openTxtViewer(card){
+  if (!_txtViewerEl){
+    _txtViewerEl = document.createElement('div');
+    _txtViewerEl.className = 'txt-viewer';
+    _txtViewerEl.innerHTML =
+      '<div class="txt-viewer-mask"></div>' +
+      '<div class="txt-viewer-panel">' +
+        '<div class="txt-viewer-head"><span class="txt-viewer-name"></span><button class="txt-viewer-close" title="关闭">×</button></div>' +
+        '<div class="txt-viewer-body"></div>' +
+      '</div>';
+    _txtViewerBody = _txtViewerEl.querySelector('.txt-viewer-body');
+    _txtViewerEl.querySelector('.txt-viewer-close').addEventListener('click', closeTxtViewer);
+    _txtViewerEl.querySelector('.txt-viewer-mask').addEventListener('click', closeTxtViewer);
+    document.body.appendChild(_txtViewerEl);
+  }
+  const nameEl = card.querySelector('.txt-name');
+  _txtViewerEl.querySelector('.txt-viewer-name').textContent = (nameEl && nameEl.textContent) || '长文.txt';
+  _txtViewerBody.textContent = card.dataset.full || '';
+  _txtViewerEl.classList.add('open');
+}
+document.addEventListener('click', e => {
+  const card = e.target.closest('.txt-card');
+  if (card) openTxtViewer(card);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTxtViewer(); });
 /* 流式渲染节流：delta 帧先累积，requestAnimationFrame 每帧至多全量重渲一次
    （原来每个 delta 都 renderMd，长回复 O(n²) 卡顿） */
 let streamRafPending = false;
@@ -689,6 +762,10 @@ function addAiMsg(text, label, cost, latencyMs, msgId){
   const wrap = document.createElement('div');
   wrap.className = 'msg-ai-wrap msg-in';
   if (msgId) wrap.dataset.msgId = msgId;
+  /* 与 Agent 模式一致：纵排——左侧圆形头像「M」在最上，内容在下方 */
+  const av = document.createElement('div');
+  av.className = 'fmsg-av'; av.textContent = 'M';
+  wrap.appendChild(av);
   const bubble = document.createElement('div');
   bubble.className = 'msg-ai';
   wrap.appendChild(bubble);
@@ -696,7 +773,8 @@ function addAiMsg(text, label, cost, latencyMs, msgId){
     wrap.appendChild(buildMsgMeta(wrap, label, cost, latencyMs, text));
   }
   setAiContent(bubble, text);
-  if (msgId) mountMsgOps(wrap, 'ai');   // hover 操作条：复制 / 重新生成 / 删除
+  wrap._text = text || '';   // 纯文本缓存：供复制读取，避免带上头像「M」与元信息
+  if (msgId) mountMsgOps(wrap, 'ai');   // 常显操作条：复制 / 重新生成 / 删除
   messagesEl.appendChild(wrap);
   scrollBottom(messagesEl);
   return wrap;
@@ -1060,8 +1138,7 @@ inputEl.addEventListener('keydown', e => {
   }
 });
 
-/* 消息操作事件委托：hover 操作条 / 展开详情复制 / 代码块复制
-   （右键菜单的复制/重新生成/编辑/删除仍走 msgCtx，Handler 相同） */
+/* 消息操作事件委托：hover 操作条 / 展开详情复制 / 代码块复制（编辑/重新生成/删除由操作条 data-msg-act 分发） */
 messagesEl.addEventListener('click', e => {
   /* hover 操作条（Codex 语义）：复制 / 重新生成 / 编辑 / 删除 */
   const op = e.target.closest('[data-msg-act]');
@@ -1071,7 +1148,8 @@ messagesEl.addEventListener('click', e => {
     if (!el || !el.dataset.msgId) return;
     const act = op.dataset.msgAct;
     if (act === 'copy'){
-      const text = el._text || el.textContent;
+      const src = el.querySelector('.msg-ai') || el.querySelector('.msg-bd');
+      const text = src ? src.textContent : (el._text || el.textContent);
       if (text && text.trim()) navigator.clipboard.writeText(text.trim()).then(() => toast('已复制'), () => toast('复制失败'));
       else toast('暂无可复制的内容');
     } else if (act === 'edit'){ handleMsgEdit(el, Number(el.dataset.msgId)); }
@@ -1107,14 +1185,7 @@ messagesEl.addEventListener('click', e => {
     return;
   }
 });
-/* 消息右键菜单：右击任一条已落库消息弹出上下文菜单（复制/重新生成/删除；用户消息为编辑/删除）
-   替代旧版"右键即删除"——现在右键只是弹出菜单，具体操作需用户选择，杜绝误删 */
-let ctxMsgEl = null;           // 被右键的目标消息元素
-const msgCtx = $('msgCtxMenu'); // 右键菜单容器
-
-function closeMsgCtx(){ msgCtx.classList.remove('open'); ctxMsgEl = null; }
-
-/* 消息右键菜单项模板：仅图标 + 文字，点击后由 msgCtx 委托分发 */
+/* 消息操作图标集：操作条（mountMsgOps）与已移除的右键菜单共用 */
 const _MCTX_ICON = {
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -1122,62 +1193,18 @@ const _MCTX_ICON = {
   del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>',
 };
 
-/* 消息 hover 操作条（Codex 语义）：常态不可见，hover 消息时浮现 icon 组 */
+/* 消息操作条（借鉴 Agent）：常显小图标行，用户=编辑/删除本轮，AI=复制/重新生成（删除仅用户侧，同 Agent） */
 function mountMsgOps(el, kind){
   if (!el || el.querySelector('.msg-ops')) return;
-  const acts = kind === 'user' ? ['edit', 'del'] : ['copy', 'regen', 'del'];
-  const titleMap = { copy: '复制', regen: '重新生成', edit: '编辑', del: '删除' };
+  const acts = kind === 'user' ? ['edit', 'del'] : ['copy', 'regen'];
+  const titleMap = { copy: '复制', regen: '重新生成', edit: '编辑', del: '删除本轮' };
   const ops = document.createElement('span');
   ops.className = 'msg-ops';
+  const danger = { del: true };
   ops.innerHTML = acts.map(a =>
-    `<button class="msg-op" data-msg-act="${a}" title="${titleMap[a]}">${_MCTX_ICON[a]}</button>`).join('');
+    `<button class="msg-op${danger[a] ? ' danger' : ''}" data-msg-act="${a}" title="${titleMap[a]}">${_MCTX_ICON[a]}</button>`).join('');
   el.appendChild(ops);
 }
-function openMsgCtx(x, y, target){
-  const isUser = target.classList.contains('msg-user');
-  const id = Number(target.dataset.msgId);
-  if (!id) return;
-  ctxMsgEl = target;
-  const item = (act, label, danger) =>
-    `<div class="ctx-item${danger ? ' danger' : ''}" data-mact="${act}">${_MCTX_ICON[act]}${label}</div>`;
-  msgCtx.innerHTML = isUser
-    ? item('edit', '编辑') + item('del', '删除', true)
-    : item('copy', '复制回复') + item('regen', '重新生成') + item('del', '删除', true);
-  msgCtx.classList.add('open');
-  msgCtx.style.left = Math.min(x, window.innerWidth - 170) + 'px';
-  msgCtx.style.top = Math.min(y, window.innerHeight - 150) + 'px';
-}
-
-messagesEl.addEventListener('contextmenu', e => {
-  const t = e.target.closest('.msg-user, .msg-ai-wrap');
-  if (!t) return;
-  if (!t.dataset.msgId) return;
-  e.preventDefault();
-  e.stopPropagation();
-  openMsgCtx(e.clientX, e.clientY, t);
-});
-msgCtx.addEventListener('click', e => {
-  const item = e.target.closest('[data-mact]');
-  const el = ctxMsgEl;      // 先捕获目标，再关闭菜单（closeMsgCtx 会清空 ctxMsgEl）
-  if (!item || !el) return;
-  const act = item.dataset.mact;
-  closeMsgCtx();
-  if (act === 'copy'){
-    const text = el._text || el.textContent;
-    if (text && text.trim()) navigator.clipboard.writeText(text.trim()).then(() => toast('已复制'), () => toast('复制失败'));
-    else toast('暂无可复制的内容');
-  } else if (act === 'edit'){
-    handleMsgEdit(el, Number(el.dataset.msgId));
-  } else if (act === 'regen'){
-    regenTurn(el);
-  } else if (act === 'del'){
-    handleMsgDelete(el, Number(el.dataset.msgId));
-  }
-});
-/* 点击他处 / 右击他处 / Esc 关闭消息右键菜单 */
-document.addEventListener('click', e => { if (!e.target.closest('#msgCtxMenu')) closeMsgCtx(); });
-document.addEventListener('contextmenu', e => { if (!e.target.closest('#msgCtxMenu')) closeMsgCtx(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMsgCtx(); });
 
 /* 选中即复制：在消息区划选回复文字后，于选区旁浮出"复制选中"（DeepSeek 交互） */
 let selCopyEl = null;
@@ -1229,19 +1256,30 @@ function regenTurn(wrap){
   updateSendState();
   sendMessage();
 }
-/* 删除单条消息（用户/助手均可）：确认后调用后端删除，再移除气泡 */
+/* 删除本轮对话（同 Agent 语义）：用户消息连同紧随的 AI 回复一并删除；删光后复位空态引导 */
 async function handleMsgDelete(el, msgId){
   if (sending){ toast('请等待当前回复完成后再删除'); return; }
   if (!state.activeConv){ toast('暂无法删除'); return; }
+  const victimIds = [msgId];
+  const victims = [el];
+  if (el.classList.contains('msg-user')){
+    const nx = el.nextElementSibling;
+    if (nx && nx.classList.contains('msg-ai-wrap')){
+      const nid = Number(nx.dataset.msgId);
+      if (nid){ victimIds.push(nid); victims.push(nx); }
+    }
+  }
   const ok = await showConfirm('删除后不可恢复', '删除消息', '删除');
   if (!ok) return;
   try{
-    await apiFetch(`/conversations/${state.activeConv}/messages/${msgId}`, 'DELETE');
+    await Promise.all(victimIds.map(id =>
+      apiFetch(`/conversations/${state.activeConv}/messages/${id}`, 'DELETE')));
   }catch(err){
     toast('删除失败：' + err.message);
     return;
   }
-  el.remove();
+  victims.forEach(n => n.remove());
+  syncAgentComposer();   // 空则输入框回居中引导态
 }
 /* 编辑用户消息：回填文本 + 连同其后所有消息一并截断删除，由用户修改后再发送 */
 async function handleMsgEdit(bubble, msgId){
@@ -2123,6 +2161,7 @@ function setMode(mode){
   if (isAgent) loadAgentTasks();
   // Agent 模式的历史对话隐藏由 CSS（.app.mode-agent #histHead/#convList）接管，这里不再折叠
   if (chatAreaEl) syncAgentComposer();   // 切模式后同步输入框位置（空→居中 / 有内容→底部）
+  updateRegionDownBtns();   // 切模式后强制复位回底按钮：残留自上一模式的 .show 立即清除，空白态不显示箭头
   try{ localStorage.setItem('monstera.mode', mode); }catch(_){}
 }
 $('modeSwitch').addEventListener('click', e => {
@@ -2203,7 +2242,6 @@ function startNewAgentTask(){
   loadAgentTasks();
 }
 /* —— 左栏悬浮日期（布局v4）：历史任务/对话 标题限宽 + 日期悬停浮窗 —— */
-const LIST_TITLE_N = 22;   // 历史条目标题字数上限，超出用省略号
 function fmtHoverDate(v){
   if (v === null || v === undefined || v === '') return '';
   const d = (typeof v === 'number') ? new Date(v * 1000) : new Date(v);
@@ -2251,7 +2289,7 @@ async function loadAgentTasks(){
     list.innerHTML = rows.map(t => `
       <div class="task-item ${t.taskId === A.activeTaskId ? 'active' : ''}" data-task="${t.taskId}" data-date="${escHtml(fmtHoverDate(t.completedAt || t.createdAt))}">
         <span class="task-body">
-          <span class="task-name">${escHtml(p2Trunc(t.title || t.objective, LIST_TITLE_N).short)}</span>
+          <span class="task-name">${escHtml(t.title || t.objective)}</span>
         </span>
         ${t.pinned ? '<span class="conv-pin" title="已置顶">' + PIN_SVG + '</span>' : ''}
       </div>`).join('');
@@ -2488,7 +2526,7 @@ function fmsgChipHtml(c, live){
   return `<div class="fmsg-chip ${cls}"${ext} data-step-no="${c.stepNo}">
     <div class="fmsg-chip-h">
       <span class="fmsg-chip-t"${ti.full.length > ti.short.length ? ` title="${escHtml(ti.full)}"` : ''}>${escHtml(title)}</span>
-      <span class="fmsg-chev">▸</span>${flag}
+      ${flag}<span class="fmsg-chev">▸</span>
     </div>
     ${detail ? `<div class="fmsg-chip-d">${detail}</div>` : ''}
   </div>`;
@@ -2693,7 +2731,7 @@ function agentViewRender(task){
   const done = st === 'completed' || st === 'failed';
   const userRow = `<div class="fmsg-row user">
     <div class="fmsg-bd">
-      <div class="fmsg-user-tx">${escHtml(task.objective || '')}</div>
+      <div class="fmsg-user-tx">${userTxHtml(task.objective || '')}</div>
       ${done ? `<div class="fmsg-msg-ops">
         <button class="fmsg-msg-op" data-msg-op="copy" title="复制用户消息">${_MCTX_ICON.copy}</button>
         <button class="fmsg-msg-op danger" data-msg-op="del" title="删除本轮全部对话">${_MCTX_ICON.del}</button>

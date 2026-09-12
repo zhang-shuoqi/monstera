@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monstera · AI 模型管理控制台</title>
-<link rel="stylesheet" href="css/_style.css">
+<link rel="stylesheet" href="css/_style.css?v=20261022">
 </head>
 <body>
 <div class="app">
@@ -251,8 +251,7 @@
   </div>
 </div>
 
-<!-- 右键菜单：单条消息（复制/重新生成/删除；用户消息为编辑/删除） -->
-<div class="ctx-menu" id="msgCtxMenu"></div>
+<!-- 消息操作条（数据属性 data-msg-act）由 JS 动态挂载；消息右键菜单已移除 -->
 
 <!-- 重命名弹窗 -->
 <div class="modal-mask" id="renameMask">
@@ -300,8 +299,8 @@
 <div id="toast"></div>
 
 <script src="vendor/alpine.min.js"></script>
-<script src="js/ch10.js"></script>
-<script src="js/ch15.js"></script>
-<script src="js/ch16-legacy.js"></script>
+<script src="js/ch10.js?v=20260911"></script>
+<script src="js/ch15.js?v=20260911"></script>
+<script src="js/ch16-legacy.js?v=20261023"></script>
 </body>
 </html>

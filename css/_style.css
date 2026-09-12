@@ -84,6 +84,9 @@
   
   /* 左侧统一滚动容器：历史对话 + 历史任务同处一条滚动条，不再各自滚动 */
   .side-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
+  /* —— 两模式共用：隐藏滚动条（左侧栏 / 聊天消息区 / Agent任务区），保留滚轮/触控滚动能力 —— */
+  .messages,#taskView,.side-scroll{scrollbar-width:none;-ms-overflow-style:none}
+  .messages::-webkit-scrollbar,#taskView::-webkit-scrollbar,.side-scroll::-webkit-scrollbar{display:none;width:0;height:0}
   .conv-list{padding:2px 10px 12px;flex:none}  /* 高度随内容；滚动统一由上方 .side-scroll 承担 */
   .conv-item{
     position:relative;
@@ -106,7 +109,9 @@
   .conv-item:active{transform:scale(.996)}
   .conv-ic{width:13px;height:13px;flex:none;color:rgba(233,232,239,.38)}
   .conv-item:hover .conv-ic,.conv-item.active .conv-ic{color:var(--gold)}
-  .conv-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* —— 两模式共用：标题省略号（聊天/历史对话 .conv-name 与 Agent/历史任务 .task-name 同一套）—— */
+  .conv-name,.task-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .conv-name{flex:1;min-width:0}
   /* 布局v4：历史条目标题 ≥22字省略号（p2Trunc）+ 悬停日期小浮窗 */
   .hist-date-tip{position:fixed;z-index:100;display:none;padding:5px 9px;border-radius:7px;
     background:var(--panel-2);border:1px solid var(--gold-line-strong);color:var(--text);
@@ -150,7 +155,7 @@
     display:flex;align-items:center;justify-content:space-between;flex:none;
     border-top:1px solid var(--gold-line);
     margin:2px 12px 6px;padding:9px 4px 5px;
-    color:rgba(233,232,239,.42);font-size:10.5px;letter-spacing:.18em;
+    color:rgba(233,232,239,.55);font-size:13px;letter-spacing:.08em;
   }
   .hist-fold{
     width:22px;height:22px;border:0;background:transparent;color:var(--dim);
@@ -170,8 +175,7 @@
   /* 侧栏整体折叠（默认展开）：折叠后连分隔条一起隐藏，聊天区占满 */
   .app.side-hidden .sidebar,
   .app.side-hidden #resizerSide{display:none}
-  /* 侧栏折叠后：对话内容展示框里的「模型」栏一并收起（模型改在展开侧栏时管理） */
-  .app.side-hidden .composer .capsule{display:none}
+  /* 侧栏折叠后：模型胶囊不再隐藏，输入框中的模型选择在折叠态仍可用 */
 
   /* ============ 聊天卡左右框线拖把（布局宪法v4：拖线=聊天框框线，严丝合缝） ============ */
   .chat-resizer{position:absolute;top:-1px;bottom:-1px;width:13px;cursor:col-resize;background:transparent;z-index:20;touch-action:none}
@@ -285,16 +289,16 @@
   .app.mode-agent .chat--empty .composer-wrap .ai-disc{margin-top:8px}
 
   /* ============ Agent 任务视图（Phase 4，中间区专属形态） ============ */
-  .task-view{
+  #taskView{
     display:none;flex:1;overflow-y:auto;flex-direction:column;
     padding:26px 30px;color:var(--text);
     overflow-anchor:none;   /* 片 1 P4：防浏览器滚动锚定与脚本打架 */
     position:relative;      /* 片 1：Agent 中间区「回到底部」按钮定位上下文 */
   }
-  .app.mode-agent .task-view{display:flex}
+  .app.mode-agent #taskView{display:flex}
   /* Agent 空状态：任务视图无内容时隐藏，输入框垂直居中；有任务/内容后自动回落底部（逻辑同聊天模式 .chat--empty）
      （注意：mode-agent 挂在根容器 .app 上，chat--empty 挂在 #chatArea 上，选择器必须写成后代组合，否则不匹配） */
-  .app.mode-agent .chat--empty .task-view{display:none}
+  .app.mode-agent .chat--empty #taskView{display:none}
   /* 实时"正在做什么"活动行（composer 上方浮现） */
   .agent-live{
     display:none;align-items:center;gap:8px;flex:none;
@@ -415,17 +419,7 @@
     overflow-anchor:none;   /* 片 1 P4：防浏览器滚动锚定与脚本打架 */
     position:relative;      /* 片 1：右侧面板「回到底部」按钮定位上下文 */
   }
-  /* 片 1 P4：Agent 区通用「回到底部」小胶囊（分镜 B.4 规格：11px / 34% 灰 / 胶囊） */
-  .scroll-down-agent{
-    position:absolute;right:14px;bottom:12px;z-index:8;
-    display:none;align-items:center;gap:4px;
-    padding:3px 10px;border-radius:999px;
-    border:1px solid var(--gold-line-strong);
-    background:var(--panel-2);color:var(--dim);
-    font-size:11px;cursor:pointer;transition:.12s;
-  }
-  .scroll-down-agent:hover{color:var(--gold);border-color:var(--gold);background:var(--panel-3)}
-  .scroll-down-agent.show{display:inline-flex}
+  /* 片 1 P4：Agent 区「回到底部」复用聊天区 .scroll-down 圆形图标按钮（fixed 钉屏幕右下角，两模式共用唯一按钮） */
   .pane-row{
     display:flex;align-items:baseline;gap:7px;padding:3px 2px;border-radius:6px;
     font-size:11px;line-height:1.5;transition:.12s;
@@ -505,19 +499,21 @@
   .extra-copy:hover{border-color:var(--gold);color:var(--gold)}
   /* 消息 hover 操作条（Codex 语义：常态不可见，hover 浮现 icon 组） */
   .msg-ai-wrap,.msg-user{position:relative}
-  .msg-ops{position:absolute;top:2px;right:6px;display:none;gap:2px;z-index:3}
-  .msg-ai-wrap:hover .msg-ops,.msg-user:hover .msg-ops{display:inline-flex}
+  /* 消息操作条：借鉴 Agent = 常显小图标行（不再 hover 才出现）
+     用户消息在下部右对齐，AI 消息在下部左对齐 */
+  .msg-ops{display:inline-flex;gap:4px;margin-top:8px;align-self:flex-end;z-index:3}
+  .msg-ai-wrap .msg-ops{align-self:flex-start}
   .msg-op{
-    width:22px;height:22px;border-radius:7px;border:0;background:transparent;
-    color:rgba(233,232,239,.55);display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:24px;border-radius:7px;border:0;background:transparent;
+    color:rgba(233,232,239,.45);display:inline-flex;align-items:center;justify-content:center;
     cursor:pointer;transition:.12s;
   }
   .msg-op:hover{background:rgba(233,232,239,.1);color:var(--gold)}
-  .msg-op svg{width:12px;height:12px}
+  .msg-op.danger:hover{color:var(--red)}
+  .msg-op svg{width:13px;height:13px}
   /* 触屏设备无 hover：操作条降为常显浅灰（Codex 移动端同义），聚焦按压时点亮 */
   @media (hover:none){
-    .msg-ops{display:inline-flex;opacity:.45}
-    .msg-user:active .msg-ops,.msg-ai-wrap:active .msg-ops{opacity:1}
+    .msg-ops{opacity:.55}
   }
 
   /* ============ 中间区：Codex 式自由消息流（无气泡/卡片/时间线，只靠左右位置、头像、间距区分） ============ */
@@ -558,7 +554,7 @@
   .fmsg-chip-h:hover{background:rgba(233,232,239,.05)}
   .fmsg-chev{font-size:9px;color:var(--dim);flex:none;transition:transform .15s}
   .fmsg-chip.open .fmsg-chev{transform:rotate(90deg)}
-  .fmsg-chip-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}  /* 布局宪法v4：文字占满，排头符号靠右 */
+  .fmsg-chip-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}  /* 去掉 flex:1 → 尾部的 ✓ 对钩 / ▸ 折叠按钮紧贴文字，不再被推到右端 */
   .fmsg-flag{flex:none;font-size:11px}
   .fmsg-chip.ok .fmsg-flag{color:var(--green)}
   .fmsg-chip.err .fmsg-flag{color:var(--red)}
@@ -666,10 +662,11 @@
   .task-ic.run{background:rgba(232,178,62,.12);color:var(--gold)}
   .task-ic.idle{background:rgba(233,232,239,.08);color:var(--dim)}
   .task-body{flex:1;min-width:0}
-  .task-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+  .task-name{display:block;min-width:0;font-size:12px}
   .task-time{font-size:10.5px;color:var(--dim);margin-top:1px}
 
   .messages{
+    position:relative;   /* 回底按钮 absolute 定位基准：使按钮钉在该消息区右下，而非更高层 */
     flex:1;overflow-y:auto;
     display:flex;flex-direction:column;gap:24px;
     padding:36px 40px;
@@ -677,13 +674,13 @@
     overflow-anchor:none;   /* 片 1 P4：防浏览器滚动锚定与脚本打架 */
   }
   .msg-user{
-    align-self:flex-end;max-width:70%;
-    background:rgba(233,232,239,.045);   /* Phase 6 对标 Codex：透明浅灰、无渐变 */
-    border:1px solid rgba(233,232,239,.14);
-    border-radius:14px 14px 4px 14px;
-    padding:10px 15px;
-    font-size:14.5px;line-height:1.7;
-    overflow-wrap:anywhere;word-break:break-word; /* 长 URL/无空格串不撑破气泡 */
+    align-self:flex-end;max-width:calc(100% - 96px);   /* 差量制（对齐 Agent .fmsg-row.user） */
+    display:flex;flex-direction:column;align-items:flex-end;gap:11px;   /* gap 对标 Agent .fmsg-row=11：头像在上文字在下 */
+  }
+  .msg-user .msg-bd{
+    /* 借鉴 Agent：纯文本无框、右对齐，只靠右侧头像区分 */
+    font-size:14.5px;line-height:1.7;color:var(--text);
+    overflow-wrap:anywhere;word-break:break-word;
   }
   /* 对话消息里的图片：约束最大宽/高，超出按比例缩放，避免撑出气泡/对话框 */
   .msg-user img,.msg-ai img{
@@ -695,7 +692,46 @@
   }
   .user-imgs{display:inline-flex;flex-wrap:wrap;gap:6px;max-width:100%}
   .user-imgs img{flex:0 0 auto;max-width:320px;max-height:320px}
-  .msg-ai-wrap{align-self:flex-start;max-width:56rem;display:flex;flex-direction:column;gap:6px;position:relative}
+  /* 长文本自动整理 TXT 卡片（复刻 DeepSeek 附件卡片：蓝色图标方块+文件名+大小；点击弹出全文查看） */
+  .txt-card{
+    display:inline-flex;align-items:center;gap:12px;max-width:100%;align-self:flex-start;
+    padding:10px 14px;border-radius:8px;background:var(--panel-1);cursor:pointer;user-select:none;
+    transition:background .13s;
+  }
+  .txt-card:hover{background:var(--panel-2)}
+  .txt-card .txt-ic{
+    flex:none;width:36px;height:36px;border-radius:6px;background:#3E7C8F;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .txt-card .txt-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .txt-card .txt-name{flex:none;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:500;color:var(--text)}
+  .txt-card .txt-size{flex:none;font-size:12px;color:var(--dim)}
+  /* —— TXT 卡片全文查看层：点击卡片弹出，Esc / 遮罩 / × 关闭 —— */
+  .txt-viewer{position:fixed;inset:0;z-index:1500;display:none}
+  .txt-viewer.open{display:block}
+  .txt-viewer-mask{position:absolute;inset:0;background:rgba(4,10,14,.72);opacity:0;transition:opacity .16s ease}
+  .txt-viewer.open .txt-viewer-mask{opacity:1}
+  .txt-viewer-panel{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.97);opacity:0;
+    width:min(720px,calc(100vw - 48px));height:min(62vh,640px);
+    display:flex;flex-direction:column;background:var(--panel-1);
+    border:1px solid var(--gold-line);border-radius:12px;overflow:hidden;
+    transition:opacity .16s ease,transform .18s cubic-bezier(.2,.8,.3,1);
+  }
+  .txt-viewer.open .txt-viewer-panel{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .txt-viewer-head{
+    flex:none;display:flex;align-items:center;gap:12px;padding:11px 14px 11px 18px;
+    border-bottom:1px solid var(--gold-line);background:var(--panel-2);
+  }
+  .txt-viewer-name{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .txt-viewer-close{
+    flex:none;width:28px;height:28px;border:1px solid var(--gold-line);background:transparent;
+    color:var(--dim);border-radius:999px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-family:inherit;font-size:16px;line-height:1;transition:color .12s,border-color .12s;
+  }
+  .txt-viewer-close:hover{color:var(--text);border-color:var(--gold)}
+  .txt-viewer-body{flex:1;overflow:auto;padding:16px 20px;font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word}
+  .msg-ai-wrap{align-self:flex-start;max-width:calc(100% - 56px);display:flex;flex-direction:column;gap:11px;position:relative}   /* 差量制（对齐 Agent .fmsg-bd）：模型文字贴用户头像边缘 */
   .msg-ai{
     /* Phase 6 UI 极简：AI 回复无框纯文本流（对标 ChatGPT/Claude 对话），仅排版 */
     background:transparent;border:0;border-radius:0;
@@ -1302,12 +1338,13 @@
   @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
   .msg-user{
-    background:linear-gradient(180deg,#1E3A46,#19323D);
-    box-shadow:0 1px 0 rgba(255,255,255,.05), 0 6px 16px -10px rgba(0,0,0,.6);
+    background:none;box-shadow:none;
+  }
+  .msg-user .msg-bd{
+    background:none;box-shadow:none;padding:0;
   }
   .msg-ai{
-    background:linear-gradient(180deg,#122731,#0F2228);
-    box-shadow:0 1px 0 rgba(255,255,255,.03), 0 8px 20px -12px rgba(0,0,0,.55);
+    background:none;box-shadow:none;   /* 对标 Agent：模型消息无气泡框，纯文本流 */
   }
   .msg-ai pre.md-code{
     background:linear-gradient(180deg,#0A171C,#081318);
@@ -1364,20 +1401,24 @@
   .code-copy-btn.copied{color:var(--green);border-color:rgba(107,203,119,.5)}
   .msg-ai pre.md-code:hover .code-copy-btn{display:flex}
 
-  /* 回到底部按钮（滚动上移后浮现） */
+  /* 回到底部按钮 —— ChatGPT 范式：固定在聊天区、浮于输入框外上方并对输入框居中。
+   背景完全透明，仅保留金色向下箭头；opacity 淡入淡出：上翻出现、回底自动隐藏。 */
   .scroll-down{
-    position:absolute;right:26px;bottom:132px;z-index:20;
-    width:36px;height:36px;border-radius:50%;
-    border:1px solid var(--gold-line-strong);background:#10262D;
+    position:absolute;left:50%;margin-left:-19px;bottom:156px;z-index:200;
+    width:38px;height:38px;border-radius:50%;
+    background:transparent;border:none;box-shadow:none;
     color:var(--gold);cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 8px 22px -8px rgba(0,0,0,.7);
-    transition:.18s;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transform:translateY(6px);
+    transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;
   }
-  .scroll-down:hover{background:#16333E;transform:translateY(-1px)}
-  .scroll-down svg{width:16px;height:16px}
-  .scroll-down{display:none}
-  .scroll-down.show{display:flex}
+  .scroll-down.show{
+    opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0);
+    transition:opacity .18s ease,transform .18s ease,visibility 0s linear 0s;
+  }
+  .scroll-down.show:hover{color:#F6EFE3}   /* hover 箭头提亮 */
+  .scroll-down svg{width:18px;height:18px}
 
   /* 输入区：柔光聚焦 + 内顶高光 */
   .composer{
@@ -1618,17 +1659,18 @@
   .conv-ic{width:14px;height:14px;flex:none;margin-top:.5px}
 
   /* —— 中间对话区：正文列宽与呼吸感（Phase 6：留白对称、列限宽、字号上调） —— */
-  .messages{padding:34px 40px;gap:24px}
+  .messages{padding:34px 28px 24px;gap:24px;max-width:680px;margin:0 auto;width:100%}   /* 对标 Agent .fmsg：文字列 680px 定宽居中 */
   .msg-user{
-    max-width:72%;
-    border-radius:16px 16px 5px 16px;padding:11px 16px;
-    background:rgba(233,232,239,.045);border:1px solid rgba(233,232,239,.14);
-    box-shadow:none;
+    max-width:calc(100% - 96px);   /* 差量制（对齐 Agent .fmsg-row.user）：用户文字不到模型头像边缘 */
   }
-  .msg-ai-wrap{max-width:54rem;width:100%}
+  .msg-user .msg-bd{
+    max-width:100%;padding:0;
+    background:none;border:0;
+  }
+  .msg-ai-wrap{max-width:calc(100% - 56px);width:100%}   /* 差量制（对齐 Agent .fmsg-bd）：模型文字可贴到用户头像边缘 */
   .msg-ai{
-    border-radius:5px 16px 16px 16px;padding:14px 18px;
-    font-size:14.5px;line-height:1.8;
+    padding:0;border-radius:0;
+    font-size:14.5px;line-height:1.75;white-space:pre-wrap;   /* 对标 Agent .fmsg-text：无内边距、无框、保留换行 */
   }
 
   /* —— 输入区：主流化外形与聚焦态 —— */

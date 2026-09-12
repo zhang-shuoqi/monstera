@@ -1,9 +1,0 @@
-[
-  {
-    "date": "2026-09-02",
-    "mode": "Full Sweep",
-    "score": 96,
-    "findings": { "critical": 0, "warning": 0, "suggestion": 2 },
-    "scope": "Monstera 全项目（可改区：backend 非冻结 / desktop / index.html；冻结区 agent_core 只读）"
-  }
-]
