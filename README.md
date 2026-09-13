@@ -13,6 +13,12 @@
 - **本地模型可选**：支持 llama.cpp 系本地推理（见 `LOCAL_MODEL.md`）
 - **Agent 内核**：事件总线 / 状态机 / 用户闸 / 记忆轨迹 / 崩溃恢复，含 0-7 阶段确定性回归脚本
 
+## 界面预览
+
+| 聊天模式 | Agent 任务模式 | 模型管理 |
+|---|---|---|
+| ![聊天模式](assets/screenshots/chat-mode.png) | ![Agent 任务模式](assets/screenshots/agent-mode.png) | ![模型管理](assets/screenshots/model-manager.png) |
+
 ## 快速开始
 
 要求：Python 3.10+，Windows 为本项目主平台。

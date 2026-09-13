@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1280px; height:640px; overflow:hidden; font-family:'Segoe UI','Microsoft YaHei UI','PingFang SC',sans-serif; background:#0a0e12; color:#e0e6eb; }
+  .wrap { display:flex; height:100%; }
+  .left { width:480px; padding:70px 0 0 52px; background:linear-gradient(160deg,#101820 0%,#0a0e12 75%); position:relative; flex-shrink:0; }
+  .left::after { content:''; position:absolute; right:0; top:60px; bottom:60px; width:1px; background:#2a353b; }
+  .brand { font-size:52px; font-weight:700; letter-spacing:1px; color:#e8dcc4; }
+  .sub { margin-top:18px; font-size:19px; color:#c8d2da; font-weight:500; }
+  .tags { margin-top:12px; }
+  .tag { display:inline-block; font-size:12px; color:#9aa8b2; border:1px solid #2a353b; border-radius:999px; padding:3px 12px; margin-right:8px; margin-top:8px; }
+  .feats { margin-top:34px; }
+  .feat { font-size:14px; color:#8b98a2; line-height:2.2; }
+  .feat b { color:#e0e6eb; font-weight:500; }
+  .right { flex:1; position:relative; background:radial-gradient(120% 120% at 75% 30%, #16222c 0%, #0a0e12 70%); }
+  .img { position:absolute; border-radius:12px; overflow:hidden; border:1px solid #4a5f6e; background:#10161b; box-shadow:0 18px 50px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06) inset; }
+  .img img { width:100%; display:block; filter:brightness(1.28) contrast(1.05) saturate(1.1); }
+  .i1 { right:44px; top:52px; width:430px; }
+  .i2 { right:520px; top:100px; width:330px; }
+  .i3 { right:200px; top:392px; width:350px; }
+  /* 标签角标 */
+  .cap { position:absolute; left:10px; top:10px; font-size:11px; color:#0a0e12; background:#e8dcc4; border-radius:999px; padding:2px 10px; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <div class="brand">Monstera</div>
+    <div class="sub">多模型对话与 Agent 任务控制台</div>
+    <div class="tags">
+      <span class="tag">聊天模式</span>
+      <span class="tag">Agent 任务</span>
+      <span class="tag">本地单机</span>
+      <span class="tag">密钥加密落库</span>
+    </div>
+    <div class="feats">
+      <div class="feat">· <b>双模式</b>：对话流与 Agent 任务流同一套消息流渲染</div>
+      <div class="feat">· <b>多厂商模型</b>：密钥 Fernet 加密，前端只看掩码</div>
+      <div class="feat">· <b>长文本卡片</b>：≥500 字自动整理为文档卡片</div>
+      <div class="feat">· <b>对话记忆</b>：自动摘要沉淀本地主权文档</div>
+      <div class="feat">· <b>MIT 开源</b>：从内核到界面完全开放</div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="img i1"><span class="cap">Agent 任务</span><img src="screenshots/agent-mode.png"></div>
+    <div class="img i2"><span class="cap">模型管理</span><img src="screenshots/model-manager.png"></div>
+    <div class="img i3"><span class="cap">聊天对话</span><img src="screenshots/chat-mode.png"></div>
+  </div>
+</div>
+</body>
+</html>
