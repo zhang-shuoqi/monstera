@@ -98,11 +98,49 @@ _BUILTIN_PROVIDERS = [
             (["moonshot"], 10.0, 30.0),
         ],
     },
+    {
+        "name": "qwen", "display_name": "通义千问",
+        "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        "balance_url": "",
+        "docs_url": "https://help.aliyun.com/zh/model-studio",
+        "recharge_url": "https://bailian.console.aliyun.com",
+        "pricing_rules": [
+            (["max"], 4.0, 12.0),
+            (["plus"], 0.5, 2.0),
+            (["flash"], 0.2, 0.6),
+            (["coder"], 1.0, 3.0),
+        ],
+    },
+    {
+        "name": "zhipu", "display_name": "智谱 GLM",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "balance_url": "",
+        "docs_url": "https://docs.bigmodel.cn",
+        "recharge_url": "https://bigmodel.cn/usercenter/proj-mgmt/apikeys",
+        "pricing_rules": [
+            (["5.3"], 5.0, 20.0),
+            (["5.2"], 4.0, 16.0),
+            (["flash"], 0.5, 2.0),
+            (["turbo"], 1.0, 4.0),
+        ],
+    },
+    {
+        "name": "doubao", "display_name": "豆包",
+        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+        "balance_url": "",
+        "docs_url": "https://www.volcengine.com/docs/82379",
+        "recharge_url": "https://console.volcengine.com/ark/overview",
+        "pricing_rules": [
+            (["pro", "2-1-pro"], 2.0, 6.0),
+            (["turbo"], 0.8, 2.0),
+            (["lite"], 0.3, 1.0),
+        ],
+    },
 ]
 
 
 def seed_builtin_providers():
-    """启动时初始化内置厂商（DeepSeek + Kimi）。
+    """启动时初始化内置厂商（DeepSeek / Kimi / 通义千问 / 智谱 GLM / 豆包）。
 
     幂等：已有同名厂商只补齐 balance_url，不覆盖用户对 models / pricing_rules 的修改；
     计费规则仅当该厂商现在没有任何规则时才写入默认。

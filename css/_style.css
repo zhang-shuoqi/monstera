@@ -965,6 +965,30 @@
   .model-row .m-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .model-row .m-ctx{color:var(--dim);font-size:11px;flex:none}
 
+  /* 更多模型：仅展示，不可点击跳转 */
+  .more-models{
+    margin-top:12px;padding:12px 14px 14px;
+    border:1px dashed var(--gold-line);border-radius:10px;
+    background:rgba(233,232,239,.02);
+  }
+  .more-models-head{
+    font-size:12px;color:var(--gold);letter-spacing:.15em;
+    margin-bottom:10px;
+  }
+  .more-model-row{
+    display:flex;align-items:center;gap:10px;
+    padding:5px 0;font-size:12px;
+  }
+  .more-dot{
+    width:6px;height:6px;border-radius:50%;flex:none;
+    background:rgba(233,232,239,.35);
+  }
+  .more-name{flex:none;color:var(--text);white-space:nowrap}
+  .more-tag{
+    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    color:var(--dim);font-size:11px;text-align:right;
+  }
+
   .models-foot{
     padding:12px 14px 16px;
     border-top:1px solid var(--gold-line);
