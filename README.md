@@ -1,5 +1,7 @@
 # Monstera
 
+> Local-first, desktop-first AI app powered by an event-bus Agent kernel. Chat with multiple LLM providers (OpenAI-compatible APIs & ollama local models), run Agent tasks with a mechanical-guarded tool loop, and keep every key encrypted with Fernet on your own machine. Built with FastAPI + vanilla HTML/CSS/JS (no build step) + optional Electron shell. English-friendly; see [LOCAL_MODEL.md](LOCAL_MODEL.md) for local inference and [features](#界面预览) below.
+
 多模型对话与 Agent 任务控制台 —— 本地单机的 AI 模型管理应用（桌面优先，Windows）。
 
 内置一个事件总线驱动的 Agent 内核：把目标拆解成可执行计划，经模型驱动 + 工具执行器循环运转，全程机械硬保护（轮次上限 / 工具调用上限 / 单步超时），状态持久化到本地。
