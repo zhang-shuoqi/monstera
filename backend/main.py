@@ -73,25 +73,20 @@ _BUILTIN_PROVIDERS = [
         "name": "deepseek", "display_name": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
         "balance_url": "https://api.deepseek.com/user/balance",
-        "docs_url": "https://platform.deepseek.com",
-        # 整理：充值入口在站内导航（无独立 URL 子路径），指向平台首页即可，供充值按钮使用
+        "docs_url": "https://platform.deepseek.com/api_keys",
         "recharge_url": "https://platform.deepseek.com",
-        "pricing_rules": [  # (关键词组, 输入价, 输出价) —— ¥/百万 tokens
-            (["flash"], 1.0, 3.0),             # 轻量快速档
-            (["pro", "reasoner"], 5.0, 15.0),  # 旗舰推理档
-            (["chat"], 2.0, 6.0),              # 标准对话档
+        "pricing_rules": [
+            (["flash"], 1.0, 3.0),
+            (["pro", "reasoner"], 5.0, 15.0),
+            (["chat"], 2.0, 6.0),
         ],
     },
     {
         "name": "kimi", "display_name": "Kimi",
         "base_url": "https://api.moonshot.cn/v1",
         "balance_url": "https://api.moonshot.cn/v1/users/me/balance",
-        "docs_url": "https://platform.moonshot.cn",
-        # 整理：充值/账户入口在站内控制台（充值位于账户中心），指向控制台首页；若官方改版请用户核实后修改
+        "docs_url": "https://platform.moonshot.cn/console/api-keys",
         "recharge_url": "https://platform.moonshot.cn/console",
-        # 官方定价（platform.moonshot.cn 2026-08）：
-        #   kimi-k2.6 输入6.50/输出27.00，kimi-k2.5 输入4.00/输出21.00，moonshot-v1 输入10/输出30
-        # 如官方价格变动，请在库里直接改 pricing_rules，无需改代码。
         "pricing_rules": [
             (["k2.6"], 6.5, 27.0),
             (["k2.5"], 4.0, 21.0),
@@ -102,7 +97,7 @@ _BUILTIN_PROVIDERS = [
         "name": "qwen", "display_name": "通义千问",
         "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
         "balance_url": "",
-        "docs_url": "https://help.aliyun.com/zh/model-studio",
+        "docs_url": "https://bailian.console.aliyun.com/#/api-key",
         "recharge_url": "https://bailian.console.aliyun.com",
         "pricing_rules": [
             (["max"], 4.0, 12.0),
@@ -115,7 +110,7 @@ _BUILTIN_PROVIDERS = [
         "name": "zhipu", "display_name": "智谱 GLM",
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "balance_url": "",
-        "docs_url": "https://docs.bigmodel.cn",
+        "docs_url": "https://bigmodel.cn/usercenter/proj-mgmt/apikeys",
         "recharge_url": "https://bigmodel.cn/usercenter/proj-mgmt/apikeys",
         "pricing_rules": [
             (["5.3"], 5.0, 20.0),
@@ -128,7 +123,7 @@ _BUILTIN_PROVIDERS = [
         "name": "doubao", "display_name": "豆包",
         "base_url": "https://ark.cn-beijing.volces.com/api/v3",
         "balance_url": "",
-        "docs_url": "https://www.volcengine.com/docs/82379",
+        "docs_url": "https://console.volcengine.com/ark/api-key",
         "recharge_url": "https://console.volcengine.com/ark/overview",
         "pricing_rules": [
             (["pro", "2-1-pro"], 2.0, 6.0),
@@ -136,11 +131,105 @@ _BUILTIN_PROVIDERS = [
             (["lite"], 0.3, 1.0),
         ],
     },
+    {
+        "name": "minimax", "display_name": "MiniMax",
+        "base_url": "https://api.minimax.cn/v1",
+        "balance_url": "",
+        "docs_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+        "recharge_url": "https://platform.minimaxi.com/user-center/payment/balance",
+        "pricing_rules": [
+            (["m3"], 3.0, 9.0),
+            (["m2.7"], 2.0, 6.0),
+            (["m2.5"], 1.5, 4.5),
+            (["m2.1"], 1.0, 3.0),
+        ],
+    },
+    {
+        "name": "hunyuan", "display_name": "腾讯混元",
+        "base_url": "https://api.hunyuan.cloud.tencent.com/v1",
+        "balance_url": "",
+        "docs_url": "https://console.cloud.tencent.com/hunyuan/start",
+        "recharge_url": "https://hunyuan.cloud.tencent.com/#/app/statistics",
+        "pricing_rules": [
+            (["hy4"], 4.0, 12.0),
+            (["hy3"], 1.0, 4.0),
+            (["turbos"], 0.5, 2.0),
+        ],
+    },
+    {
+        "name": "mimo", "display_name": "MiMo",
+        "base_url": "https://api.xiaomimimo.com/v1",
+        "balance_url": "",
+        "docs_url": "https://platform.xiaomimimo.com/#/console/api-keys",
+        "recharge_url": "https://platform.xiaomimimo.com/#/console/usage",
+        "pricing_rules": [
+            (["pro"], 2.0, 6.0),
+            (["fast"], 1.0, 3.0),
+            (["32b"], 0.5, 1.5),
+        ],
+    },
+    {
+        "name": "wenxin", "display_name": "文心一言",
+        "base_url": "https://qianfan.baidubce.com/v2",
+        "balance_url": "",
+        "docs_url": "https://console.bce.baidu.com/qianfan/ais/console/apiKey",
+        "recharge_url": "https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application/v2",
+        "pricing_rules": [
+            (["5.1"], 5.0, 15.0),
+            (["5.0"], 3.0, 9.0),
+            (["turbo"], 1.0, 3.0),
+        ],
+    },
+    {
+        "name": "xinghuo", "display_name": "讯飞星火",
+        "base_url": "https://maas-token-api.cn-huabei-1.xf-yun.com/v2",
+        "balance_url": "",
+        "docs_url": "https://maas.xfyun.cn/tokenPlan/subscription",
+        "recharge_url": "https://maas.xfyun.cn/tokenPlan/subscription",
+        "pricing_rules": [
+            (["x2.5"], 1.6, 6.0),
+            (["x2"], 2.0, 7.0),
+        ],
+    },
+    {
+        "name": "pangu", "display_name": "盘古",
+        "base_url": "https://api.modelarts-maas.com/openai/v1",
+        "balance_url": "",
+        "docs_url": "https://console.huaweicloud.com/modelarts/#/model-studio/authmanage",
+        "recharge_url": "https://console.huaweicloud.com/modelarts/#/model-studio/homepage",
+        "pricing_rules": [
+            (["2.0-pro"], 3.0, 9.0),
+            (["2.0-flash"], 1.0, 3.0),
+        ],
+    },
+    {
+        "name": "stepfun", "display_name": "Step",
+        "base_url": "https://api.stepfun.com/step_plan/v1",
+        "balance_url": "",
+        "docs_url": "https://platform.stepfun.com/interface-key",
+        "recharge_url": "https://platform.stepfun.com/step-plan",
+        "pricing_rules": [
+            (["5-preview"], 5.0, 15.0),
+            (["3.7"], 3.0, 9.0),
+            (["3.5"], 2.0, 6.0),
+        ],
+    },
+    {
+        "name": "sensenova", "display_name": "商汤日日新",
+        "base_url": "https://api.sensenova.cn/compatible-mode/v2",
+        "balance_url": "",
+        "docs_url": "https://console.sensecore.cn/aistudio/management/api-key",
+        "recharge_url": "https://www.sensenova.cn/token-plan",
+        "pricing_rules": [
+            (["u1"], 4.0, 12.0),
+            (["6.8"], 1.0, 3.0),
+        ],
+    },
 ]
 
 
 def seed_builtin_providers():
-    """启动时初始化内置厂商（DeepSeek / Kimi / 通义千问 / 智谱 GLM / 豆包）。
+    """启动时初始化内置厂商（13 家 OpenAI 兼容厂商）。
 
     幂等：已有同名厂商只补齐 balance_url，不覆盖用户对 models / pricing_rules 的修改；
     计费规则仅当该厂商现在没有任何规则时才写入默认。

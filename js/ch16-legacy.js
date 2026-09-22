@@ -1554,31 +1554,6 @@ function renderModels(){
     }
     return `<div class="model open" data-id="${p.id}">${head}${body}</div>`;
   }).join('');
-
-  // 更多模型：仅展示，不提供跳转或接入
-  const moreModels = [
-    { name: 'MiniMax M3', tag: '多模态 · 语音视频生成' },
-    { name: '腾讯混元', tag: '多模态 · 中文生态' },
-    { name: 'MiMo 2.6', tag: '开源第一（2026-09 AA 46 分）' },
-    { name: '文心 5.0', tag: '10M 超长上下文' },
-    { name: '讯飞星火', tag: '语音 · 教育/政企' },
-    { name: '盘古', tag: '行业垂直 · 政企' },
-    { name: 'Step 3.7', tag: '多模态 Agent' },
-    { name: '商汤日日新', tag: '医疗 · 行业垂直' },
-  ];
-  const moreRows = moreModels.map(m => `
-    <div class="more-model-row">
-      <span class="more-dot"></span>
-      <span class="more-name">${escHtml(m.name)}</span>
-      <span class="more-tag">${escHtml(m.tag)}</span>
-    </div>
-  `).join('');
-  listEl.insertAdjacentHTML('beforeend', `
-    <div class="more-models">
-      <div class="more-models-head">更多模型</div>
-      ${moreRows}
-    </div>
-  `);
 }
 
 $('modelList').addEventListener('click', async e => {
